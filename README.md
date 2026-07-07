@@ -1,192 +1,126 @@
-# MSA — Market Sentiment Analyzer
+# مُرشِد / MSA — Shariah-Aware Quant Terminal
 
-AI-powered stock analysis platform that fuses Savitzky-Golay denoised trend analysis, statistical Z-Score mean reversion, Bollinger Bands, On-Balance Volume, volume profiling, Wall Street analyst consensus, market sentiment, and live news into a single weighted inference signal via GPT-4o — built for quants, built for traders.
+**خبيرك الكمّي المتوافق مع الشريعة** — Arabic-first, agentic market analysis platform.
 
-## What It Does
+MSA fuses nine live analytical modules, FinBERT news sentiment, a 4-pillar weighted composite score, GPT-4o judgment, Monte Carlo simulation, AAOIFI-style Shariah screening, and a halal-constrained portfolio optimizer into one Arabic-first quant terminal — built for Alinma's Shariah-compliant customer.
 
-### Signal Processing (v3.0)
-- **Savitzky-Golay Denoised Trend** — Polynomial regression (window=21, order=3) implemented via numpy Vandermonde pseudo-inverse. Extracts true price velocity (% per day) and acceleration. Detects momentum exhaustion when denoised slope diverges from RSI.
-- **Statistical Z-Score** — 20-day rolling Z-Score: (Price - Mean) / StdDev. Reversal probability calculated via error function. |Z| > 2.0 = 95.4% statistical significance for mean reversion.
-- **Inference Weighting Engine** — Pre-calculated 4-pillar composite score fed directly to GPT as a mathematical baseline:
-  - Technical (35%): SG slope + Z-Score + RSI/MACD
-  - Sentiment (25%): CNN Fear & Greed (contrarian-adjusted, 60%) + FinBERT NLP aggregate score (40%)
-  - Analyst (20%): Wall Street consensus weighted score
-  - Volume (20%): OBV divergence + volume spike confirmation
+Live API: `https://vd2mi-msa.hf.space`
 
-### Technical Indicators
-- **RSI + MACD** — RSI (14-day), MACD (12, 26, 9), 50-day & 200-day SMAs with Golden Cross / Death Cross detection. Combined into a 0–100 gauge score.
-- **Bollinger Bands** — 20-period SMA ± 2 standard deviations. Bandwidth %, price position relative to bands, and squeeze detection for breakout signals.
-- **On-Balance Volume (OBV)** — Cumulative volume trend analysis with divergence detection. Flags accumulation (stealth buying) vs distribution (smart money exiting).
-- **Volume Profile** — 20-day average volume, latest volume ratio, and spike detection for confirmation signals.
+## Module Status — Live vs Beta vs Target
 
-### Fundamentals & Sentiment
-- **Analyst Ratings** — Real Wall Street analyst breakdown (Strong Buy / Buy / Hold / Sell / Strong Sell) with weighted consensus score and semicircle gauge.
-- **1-Year Price Target** — Mean, high, and low analyst targets with current price positioning and upside/downside %. Multiple fallback keys for maximum compatibility across tickers.
-- **Live Price & Daily Change** — Current market price with real-time daily $ and % movement (green ▲ / red ▼).
-- **Market Sentiment** — CNN Fear & Greed Index scraped live (graceful Neutral fallback).
-- **News Intelligence** — Latest Yahoo Finance headlines per ticker, each analyzed by **FinBERT** (ProsusAI/finbert) transformer model via Hugging Face Inference API. Per-headline positive/negative/neutral labels with confidence scores. Aggregate sentiment score (0-1) feeds directly into inference weights. Graceful fallback to keyword matching if FinBERT API is unavailable.
+Credibility is the product. Every module is labeled by what it actually is:
 
-### AI & Platform
-- **GPT-4o Hardline Quant** — All signals + pre-calculated inference weights fed to a "Hardline Mathematical Quantitative Analyst" persona. Must reference "Denoised Price Velocity", "Statistical Significance", and specific Z-Score thresholds in every response. Temperature 0.3 for deterministic output.
-- **Comparison Mode** — Side-by-side analysis of two tickers with tug-of-war bars, radar chart, and goal-based recommendations.
-- **5-Minute TTL Cache** — Repeat requests served instantly, saving API costs.
-- **Live Ticker Feed** — WebSocket-powered real-time price belt on the landing page.
+| Module | Status | Notes |
+|--------|--------|-------|
+| 9 analytical modules (RSI-14, MACD, Bollinger, OBV, SG denoised trend, Z-Score, volume profile, F&G, SMA 50/200) | ✅ **Live** | Real math on real 1y OHLCV |
+| FinBERT news sentiment | ✅ **Live** | ProsusAI/finbert via HF Inference API, keyword fallback |
+| 4-pillar composite score + GPT-4o verdict | ✅ **Live** | 35% technical / 25% sentiment / 20% analyst / 20% volume |
+| Arabic agentic copilot (`POST /chat`) | ✅ **Live** | GPT-4o tool-calling over the live endpoints; anti-hallucination rules — quotes only tool-returned numbers, states failures explicitly |
+| Monte Carlo simulator (`/montecarlo`) | ✅ **Live** | Seeded GBM, 10,000 paths, μ/σ from the ticker's real returns; VaR, CVaR, target probability |
+| Explainability ("لماذا هذه التوصية") | ✅ **Live** | Client-side decomposition of the existing composite into pillar contributions |
+| Position sizing (`/position-size`) | ✅ **Live** | Volatility targeting + ¼ Kelly (capped) + 2×ATR stop; formulas shown on demand. p_win mapping from composite is calibration-beta |
+| Risk profiling (3-question KYC-lite) | ✅ **Live** | محافظ / متوازن / جريء — adjusts sizing, thresholds, and optimizer live |
+| Shariah screening (`/shariah`) | 🟡 **Beta — تجريبي / قيد المعايرة** | Real AAOIFI ratio math (debt/cash/receivables ÷ mcap ≤ 30%) from Yahoo balance sheets + business-activity filter. **TODO(data):** non-compliant-income % and purification rate need a segment-revenue feed (IdealRatings/Refinitiv) — returned as `null`, never faked |
+| Halal portfolio optimizer (`/optimize`) | 🟡 **Beta — demo basket** | Real Markowitz (no-short) on 1y returns of a clearly-labeled demo basket of US stocks held by Shariah ETFs (SPUS/HLAL). **TODO(data):** wire basket to the live Shariah screen over a Tadawul+US universe |
+| Backtest + calibration (`/backtest`) | 🟡 **Partial** | Real 2y walk-forward of the **technical pillar** (hit rate, Brier, Sharpe, max DD, equity curve). Full 4-pillar validation requires historical sentiment/analyst archives — labeled **«هدف التحقق»** (validation target), not achieved |
+
+Saudi tickers are supported through Yahoo Finance's `.SR` suffix (e.g. `2222.SR` for Aramco) — prices/history are solid, but news and analyst coverage can be thin; the copilot says so when it happens.
+
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/analyze?ticker=AAPL` | Full pipeline — SG denoising, Z-Score, FinBERT, inference weights, SMAs, RSI, MACD, BB, OBV, Volume, Analysts, Price Target, F&G, News, GPT-4o (cached 5 min) |
+| `POST` | `/chat` | Arabic copilot — GPT-4o tool-calling over analyze / montecarlo / shariah / position-size / backtest. Body: `{"message": "أشتري أرامكو؟", "history": []}` |
+| `GET` | `/montecarlo?ticker=AAPL&horizon_days=63&target=250` | Seeded GBM, 10k paths: percentile cone (P05–P95), sample paths, VaR/CVaR 95%, P(reach target). Deterministic per ticker+day |
+| `GET` | `/position-size?ticker=AAPL&profile=balanced&score=71&capital=100000` | % of capital (vol targeting + capped ¼ Kelly), 2×ATR stop, formulas |
+| `GET` | `/shariah?ticker=AAPL` | AAOIFI-style screen → حلال / مختلط / غير متوافق (beta) |
+| `GET` | `/optimize?risk_profile=balanced` | Efficient frontier + optimal allocation on halal demo basket (beta) |
+| `GET` | `/backtest?ticker=AAPL&threshold=55` | 2y walk-forward technical-pillar signal vs buy & hold |
+| `GET` | `/health` · `/sma` · `/fear-greed` · `/news` · `DELETE /cache` | Utilities (unchanged) |
+
+Interactive docs at `/docs`.
+
+## Frontend Pages
+
+| Page | Language | What it is |
+|------|----------|-----------|
+| `index.html` | العربية (RTL) | Clean product landing — live API health, module grid with honest live/beta tags |
+| `terminal.html` | العربية (RTL) | **Flagship quant terminal** — copilot chat, composite gauge + score attribution bars, Shariah badge, position sizing, Monte Carlo fan chart, walk-forward backtest, halal frontier, 9-module strip, FinBERT news |
+| `dashboard.html` | English | Classic terminal (unchanged, still fully functional) |
+| `compare.html` | English | Side-by-side two-ticker comparison (unchanged) |
+
+Frontend niceties:
+- `terminal.html?ticker=AAPL` deep-links an analysis.
+- `terminal.html?record=1` hides nav/footer chrome for clean 16:9 screen recording.
+- `?api=http://localhost:7860` points any page at a local backend.
+- Risk profile persists in `localStorage` and re-calibrates position sizing, signal thresholds, and the optimizer live.
+
+## Architecture
+
+```
+User (Arabic) ──► terminal.html ──► GET /analyze ─┬─ yfinance OHLCV/news/analysts/targets
+       │                                          ├─ CNN Fear & Greed
+       │                                          ├─ FinBERT (HF Inference API)
+       │                                          └─ GPT-4o hardline-quant verdict
+       │
+       ├──► POST /chat ──► GPT-4o tool-calling ──► analyze / montecarlo / shariah /
+       │                   (numbers only from tools)  position-size / backtest
+       ├──► GET /montecarlo  (seeded GBM 10k paths — μ,σ from real returns)
+       ├──► GET /position-size (vol targeting + ¼ Kelly + 2×ATR stop)
+       ├──► GET /shariah     (AAOIFI ratios — beta, income feed pending)
+       ├──► GET /optimize    (Markowitz no-short on halal demo basket — beta)
+       └──► GET /backtest    (2y walk-forward technical pillar)
+```
+
+All fetches run concurrently (`asyncio.gather`); OHLCV history is shared across endpoints via a 5-minute TTL cache.
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
 | Backend | Python, FastAPI, Uvicorn, Pydantic v2 |
-| Data Sources | yfinance (prices, news, analysts, targets), CNN (Fear & Greed), httpx, BeautifulSoup4 |
-| Signal Processing | NumPy (Savitzky-Golay filter, Z-Score, polyfit) |
-| NLP Sentiment | ProsusAI/finbert via Hugging Face Inference API (serverless, zero-dep) |
-| AI | OpenAI GPT-4o (strict JSON mode, temperature 0.3, hardline quant persona) |
-| Caching | cachetools TTLCache (in-memory, 5 min, 256 entries) |
-| Async | asyncio.gather + asyncio.to_thread for non-blocking I/O |
-| Frontend | Tailwind CSS, Chart.js, Canvas API, SVG gauges |
-| Live Data | WebSocket (wss://fisi-production.up.railway.app) |
-| Deployment | Docker on Hugging Face Spaces, Vercel (frontend) |
+| Data | yfinance (US + Tadawul `.SR`), CNN F&G, httpx, BeautifulSoup4 |
+| Quant math | NumPy — Savitzky-Golay, Z-Score, GBM Monte Carlo, Markowitz sampling, walk-forward vectorized backtest, Kelly/ATR sizing |
+| NLP | ProsusAI/finbert via HF Inference API |
+| AI agent | OpenAI GPT-4o — strict JSON verdict + tool-calling copilot (temperature 0.2–0.3) |
+| Caching | cachetools TTLCache (analysis + raw history, 5 min) |
+| Frontend | Hand-rolled canvas charts (fan chart, equity curves, frontier), SVG gauges, IBM Plex Sans Arabic, RTL-first CSS — no chart libraries on the new pages |
+| Deployment | Docker on Hugging Face Spaces (API) · Vercel / GitHub Pages (static frontend) |
 
-## API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/` | Service info |
-| `GET` | `/health` | Health check + cache size |
-| `GET` | `/analyze?ticker=AAPL` | Full pipeline — SG denoising, Z-Score, FinBERT NLP sentiment, inference weights, SMAs, RSI, MACD, BB, OBV, Volume, Analysts, Price Target, Fear & Greed, News, GPT-4o (cached 5 min) |
-| `GET` | `/sma?ticker=AAPL` | SMA data only |
-| `GET` | `/fear-greed` | CNN Fear & Greed Index |
-| `GET` | `/news?ticker=AAPL` | Yahoo Finance news headlines |
-| `DELETE` | `/cache/{ticker}` | Evict one ticker from cache |
-| `DELETE` | `/cache` | Purge entire cache |
-
-## Project Structure
-
-```
-MSA/
-├── app.py              # FastAPI backend (data pipeline, indicators, GPT integration)
-├── index.html          # Landing page (animated candlestick bg, live ticker belt, stats)
-├── dashboard.html      # Analysis terminal (gauges, charts, GPT results, tooltips, loader)
-├── compare.html        # Side-by-side ticker comparison (radar chart, tug-of-war, verdicts)
-├── base.html           # Shared base template
-├── script.js           # Shared frontend utilities
-├── style.css           # Shared styles
-├── requirements.txt    # Python dependencies
-├── Dockerfile          # Hugging Face Spaces deployment
-├── vercel.json         # Vercel frontend deployment config
-├── .gitignore
-├── .env                # Local env vars (not committed)
-└── README.md
-```
-
-## Data Pipeline
-
-All data is fetched concurrently via `asyncio.gather` for minimum latency:
-
-```
-User enters ticker
-        │
-        ├─── yfinance: 1yr OHLCV → SMA 50/200, RSI-14, MACD, BB, OBV, Volume Profile
-        ├─── yfinance: analyst ratings (Strong Buy → Strong Sell)
-        ├─── yfinance: 1yr price targets + current price + daily change
-        ├─── CNN: Fear & Greed Index
-        └─── yfinance: news headlines
-                │
-                ▼
-        FinBERT (ProsusAI/finbert) → per-headline sentiment labels + aggregate score
-        Savitzky-Golay denoising → Price Velocity + Acceleration
-        20-day Z-Score → Mean Reversion Probability (erf)
-        4-Pillar Inference Weights (FinBERT-powered sentiment) → Composite Score (0-100)
-                │
-                ▼
-        Weighted payload → GPT-4o (strict JSON, hardline quant) → Buy/Hold/Sell/Watch + Confidence
-```
-
-GPT-4o decision framework:
-- Z-Score > +2.0 AND denoised slope decelerating → SELL (95.4% mean reversion, statistically significant)
-- Z-Score < -2.0 AND OBV rising → BUY (oversold with accumulation, 95% reversion probability)
-- Denoised slope positive + acceleration positive + Z < 1.5 → BUY (healthy trend with room)
-- Momentum Exhaustion detected → reversal mathematically likely, WATCH or counter-trade
-- Bollinger Squeeze + Z near 0 + dry volume → WATCH (breakout imminent)
-- OBV divergence overrides price action: Accumulation vs Distribution
-- FinBERT sentiment aggregates factored into composite score (40% weight within sentiment pillar)
-
-## Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `OPENAI_API_KEY` | Yes | OpenAI API key with GPT-4 access |
-| `HF_API_TOKEN` | No | Hugging Face token (higher FinBERT rate limits; works without it on free tier) |
-
-## Deploying to Hugging Face Spaces
-
-1. Create a new Space → select **Docker** as the SDK.
-2. Push this repo to the Space.
-3. Add `OPENAI_API_KEY` as a Secret in the Space settings.
-4. The Space builds and exposes the API on port **7860**.
-
-Live API: `https://vd2mi-msa.hf.space`
-
-## Local Development
+## Run Locally
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Create a `.env` file:
+`.env`:
 ```
-OPENAI_API_KEY=your_key_here
-HF_API_TOKEN=your_hf_token_here  # Optional: improves FinBERT rate limits
+OPENAI_API_KEY=your_key_here     # required for GPT verdict + copilot
+HF_API_TOKEN=your_hf_token_here  # optional: higher FinBERT rate limits
 ```
 
-Run the server:
 ```bash
-python app.py
+python app.py                    # API on http://localhost:7860 — docs at /docs
+python -m http.server 8000       # serve the frontend
+# open http://localhost:8000/terminal.html?api=http://localhost:7860
 ```
 
-Server starts on `http://localhost:7860`. Interactive docs at `/docs`.
+## Deploy to Hugging Face Spaces
 
-**Note:** FinBERT works on Hugging Face's free tier without `HF_API_TOKEN`, but adding a token provides higher rate limits for production use.
+1. Create a Space → SDK: **Docker**.
+2. Push this repo (Dockerfile, app.py, requirements.txt are the backend).
+3. Add `OPENAI_API_KEY` (and optionally `HF_API_TOKEN`) as Space Secrets.
+4. The Space builds and serves on port **7860**. The static pages can be hosted anywhere (Vercel/GitHub Pages) — they point at the Space URL by default.
 
-## Frontend
+## Honesty Rules (enforced in code)
 
-### Landing Page (`index.html`)
-- Animated candlestick chart background in the hero section
-- WebSocket live ticker belt with seamless looping
-- API health stats (status, response time)
-- Terminal-style glass-panel feature cards
-- Crosshair cursor theme
+- The copilot may only state numbers that appear in tool outputs; tool failures are reported, not papered over.
+- Monte Carlo is seeded per ticker+day → reproducible, and labeled as a probability distribution, not a forecast.
+- Shariah screen and optimizer carry a permanent **تجريبي** badge until their data feeds are wired; missing figures return `null` and render as «قيد الربط», never as fake numbers.
+- Backtest reports its true scope (technical pillar) and labels full-composite validation **«هدف التحقق»**.
+- Nothing simulated is ever displayed as real.
 
-### Analysis Terminal (`dashboard.html`)
-- Animated loading screen with chart line, floating market words, and system logs
-- Auto-analysis on page load when `?ticker=SYMBOL` is in URL
-- Live price + daily change arrow (green ▲ / red ▼)
-- AI recommendation badge (Buy/Sell/Watch/Hold with confidence %)
-- SMA crossover signal (Golden Cross / Death Cross)
-- Technicals semicircle gauge (RSI + MACD combined score)
-- Analyst rating semicircle gauge with bar breakdown
-- 1-year price target with range visualization (graceful handling when targets unavailable)
-- Fear & Greed animated gauge
-- Denoised Trend panel (SG slope velocity, acceleration, momentum exhaustion badge)
-- Z-Score panel (value, reversal probability bar, 20d mean/sigma)
-- Inference Weights panel (4-pillar horizontal bars + composite score)
-- Bollinger Bands panel (upper/lower/bandwidth/squeeze detection)
-- On-Balance Volume panel (trend, divergence, accumulation/distribution)
-- Volume Profile panel (avg volume, ratio, spike detection)
-- FinBERT News Sentiment summary header (+X / -Y / ~Z breakdown)
-- News cards with per-headline FinBERT sentiment dots (green/red/gray) and confidence scores
-- 30-day price chart with dynamic red/green segments, SMA lines, BB overlay, and SG denoised trendline
-- AI analysis card with confidence score and reasoning
-- Tooltips on every panel explaining metrics and typical ranges
-- "Compare it" CTA linking to comparison mode with pre-filled ticker
+## Demo
 
-### Comparison Mode (`compare.html`)
-- Animated loading screen matching the dashboard
-- Side-by-side ticker header cards with live price and AI badges
-- Tug-of-war bars for every metric (AI confidence, technicals, analyst score, RSI, MACD, SMA signal, BB position, OBV signal, volume ratio, upside %, Fear & Greed, Composite Score, SG Velocity, Z-Score, Momentum Exhaustion, FinBERT Sentiment)
-- Radar chart overlaying both tickers across 7 dimensions (AI Confidence, Technicals, Analyst, Composite Score, Sentiment, Upside %, Volume)
-- Goal-based verdict system (best to buy, strongest technicals, smart money flow, most upside, stronger quant signal, better news sentiment)
-- Winner/loser glow effects on header cards
-- Pre-filled ticker inputs when navigating from dashboard
-
-All pages connect to the Hugging Face-hosted API at `https://vd2mi-msa.hf.space`.
+See [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md) for the 30-second Arabic hero-flow walkthrough (use `terminal.html?record=1`).
