@@ -56,6 +56,12 @@ _analysis_cache: TTLCache[str, dict[str, Any]] = TTLCache(
     maxsize=256, ttl=CACHE_TTL_SECONDS
 )
 
+# raw OHLCV history cache — shared by /analyze, /montecarlo, /backtest,
+# /position-size and /optimize so one ticker is only fetched once per TTL
+_history_cache: TTLCache[str, list[dict[str, Any]]] = TTLCache(
+    maxsize=256, ttl=CACHE_TTL_SECONDS
+)
+
 
 class MovingAverages(BaseModel):
     sma_50: float | None = Field(None, description="50-day Simple Moving Average")
@@ -228,9 +234,14 @@ def _yf_fetch_history(ticker: str, period: str = "1y") -> list[dict[str, Any]]:
     return rows
 
 
-async def fetch_daily_ohlcv(ticker: str) -> list[dict[str, Any]]:
+async def fetch_daily_ohlcv(ticker: str, period: str = "1y") -> list[dict[str, Any]]:
+    key = f"{ticker.upper()}::{period}"
+    if key in _history_cache:
+        return _history_cache[key]
     try:
-        return await asyncio.to_thread(_yf_fetch_history, ticker.upper())
+        rows = await asyncio.to_thread(_yf_fetch_history, ticker.upper(), period)
+        _history_cache[key] = rows
+        return rows
     except Exception as exc:
         raise HTTPException(
             status_code=502,
@@ -1310,6 +1321,1015 @@ async def clear_all_cache():
     count = len(_analysis_cache)
     _analysis_cache.clear()
     return {"cleared": count}
+
+
+# ═════════════════════════════════════════════════════════════════════════
+#  v4 — QUANT TERMINAL LAYER
+#  Monte Carlo (GBM) · Position Sizing · Shariah Screen (beta) ·
+#  Halal Portfolio Optimizer (beta) · Walk-forward Backtest ·
+#  Arabic Agentic Copilot (GPT-4o tool-calling, anti-hallucination)
+# ═════════════════════════════════════════════════════════════════════════
+
+import hashlib
+from datetime import date
+
+TRADING_DAYS = 252
+RISK_FREE_RATE = 0.04  # annual, used for Sharpe / frontier
+
+
+def _is_saudi(ticker: str) -> bool:
+    return ticker.upper().endswith(".SR")
+
+
+def _currency_for(ticker: str) -> str:
+    return "SAR" if _is_saudi(ticker) else "USD"
+
+
+def _closes_oldest_first(daily_rows: list[dict[str, Any]]) -> np.ndarray:
+    return np.array([r["close"] for r in reversed(daily_rows)], dtype=float)
+
+
+def _log_returns(closes: np.ndarray) -> np.ndarray:
+    return np.diff(np.log(closes))
+
+
+# ─────────────────────────────────────────────────────────────────────────
+#  1. Monte Carlo — seeded GBM, drift/vol estimated from real returns
+# ─────────────────────────────────────────────────────────────────────────
+
+class MonteCarloResult(BaseModel):
+    ticker: str
+    currency: str
+    spot: float
+    horizon_days: int = Field(..., description="Trading-day horizon")
+    n_paths: int
+    seed: int = Field(..., description="Deterministic seed (ticker+date) — same result on refresh")
+    mu_annual: float = Field(..., description="Annualized drift estimated from 1y of real log returns")
+    sigma_annual: float = Field(..., description="Annualized volatility from 1y of real log returns")
+    p05: list[float]
+    p25: list[float]
+    p50: list[float]
+    p75: list[float]
+    p95: list[float]
+    sample_paths: list[list[float]] = Field(default_factory=list, description="Thinned real simulation paths for rendering")
+    expected_price: float = Field(..., description="Mean terminal price across all paths")
+    var_95_pct: float = Field(..., description="95% Value-at-Risk over horizon, % of spot (loss, positive number)")
+    var_95_price: float
+    cvar_95_pct: float = Field(..., description="95% Conditional VaR (expected shortfall), % of spot")
+    cvar_95_price: float
+    target: float
+    prob_end_above_target: float = Field(..., description="P(terminal price ≥ target), %")
+    prob_touch_target: float = Field(..., description="P(path touches target at any point), %")
+    method: str = "GBM: S_t = S₀·exp((μ−σ²/2)t + σ√t·Z) — μ,σ from real 1y daily log returns"
+
+
+def _run_monte_carlo(
+    closes: np.ndarray, spot: float, horizon: int, n_paths: int, seed: int, target: float,
+) -> dict[str, Any]:
+    rets = _log_returns(closes)
+    mu_d = float(np.mean(rets))
+    sigma_d = float(np.std(rets, ddof=1))
+
+    rng = np.random.default_rng(seed)
+    z = rng.standard_normal((n_paths, horizon))
+    increments = (mu_d - 0.5 * sigma_d**2) + sigma_d * z
+    log_paths = np.cumsum(increments, axis=1)
+    paths = spot * np.exp(log_paths)
+    paths = np.concatenate([np.full((n_paths, 1), spot), paths], axis=1)
+
+    pcts = np.percentile(paths, [5, 25, 50, 75, 95], axis=0)
+    terminal = paths[:, -1]
+    term_ret = terminal / spot - 1.0
+
+    q05 = float(np.percentile(term_ret, 5))
+    var_pct = max(0.0, -q05)
+    tail = term_ret[term_ret <= q05]
+    cvar_pct = max(0.0, -float(tail.mean())) if tail.size else var_pct
+
+    prob_end = float((terminal >= target).mean()) * 100
+    prob_touch = float((paths.max(axis=1) >= target).mean()) * 100
+
+    # a handful of real paths, thinned, purely for visual texture
+    sample = paths[:: max(1, n_paths // 24)][:24]
+
+    return {
+        "mu_annual": round(mu_d * TRADING_DAYS, 4),
+        "sigma_annual": round(sigma_d * math.sqrt(TRADING_DAYS), 4),
+        "p05": [round(float(x), 2) for x in pcts[0]],
+        "p25": [round(float(x), 2) for x in pcts[1]],
+        "p50": [round(float(x), 2) for x in pcts[2]],
+        "p75": [round(float(x), 2) for x in pcts[3]],
+        "p95": [round(float(x), 2) for x in pcts[4]],
+        "sample_paths": [[round(float(x), 2) for x in p] for p in sample],
+        "expected_price": round(float(terminal.mean()), 2),
+        "var_95_pct": round(var_pct * 100, 2),
+        "var_95_price": round(spot * (1 - var_pct), 2),
+        "cvar_95_pct": round(cvar_pct * 100, 2),
+        "cvar_95_price": round(spot * (1 - cvar_pct), 2),
+        "prob_end_above_target": round(prob_end, 1),
+        "prob_touch_target": round(prob_touch, 1),
+    }
+
+
+@app.get("/montecarlo", response_model=MonteCarloResult)
+async def monte_carlo(
+    ticker: str = Query(..., min_length=1, max_length=12),
+    horizon_days: int = Query(63, ge=10, le=252, description="Trading days to simulate (63 ≈ 3 months)"),
+    n_paths: int = Query(10_000, ge=1000, le=20_000),
+    target: float | None = Query(None, gt=0, description="Target price; default = spot × 1.10"),
+    seed: int | None = Query(None, description="Override the deterministic daily seed"),
+):
+    ticker = ticker.upper().strip()
+    daily_rows = await fetch_daily_ohlcv(ticker)
+    closes = _closes_oldest_first(daily_rows)
+    if closes.size < 60:
+        raise HTTPException(status_code=422, detail=f"Not enough history for {ticker} to estimate drift/volatility.")
+
+    spot = float(closes[-1])
+    tgt = target if target else round(spot * 1.10, 2)
+    if seed is None:
+        seed = int(hashlib.sha256(f"{ticker}-{date.today().isoformat()}".encode()).hexdigest()[:8], 16)
+
+    result = await asyncio.to_thread(_run_monte_carlo, closes, spot, horizon_days, n_paths, seed, tgt)
+
+    return MonteCarloResult(
+        ticker=ticker,
+        currency=_currency_for(ticker),
+        spot=round(spot, 2),
+        horizon_days=horizon_days,
+        n_paths=n_paths,
+        seed=seed,
+        target=tgt,
+        **result,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────
+#  2. Position sizing — volatility targeting + capped fractional Kelly
+# ─────────────────────────────────────────────────────────────────────────
+
+RISK_PROFILES: dict[str, dict[str, float | str]] = {
+    "conservative": {"label_ar": "محافظ", "target_vol": 0.10, "multiplier": 0.75, "cap": 0.10},
+    "balanced": {"label_ar": "متوازن", "target_vol": 0.15, "multiplier": 1.00, "cap": 0.15},
+    "aggressive": {"label_ar": "جريء", "target_vol": 0.20, "multiplier": 1.25, "cap": 0.25},
+}
+
+
+class PositionSizeResult(BaseModel):
+    ticker: str
+    currency: str
+    price: float
+    profile: str
+    profile_ar: str
+    composite_score_used: float
+    score_source: str = Field(..., description="'client' if passed by caller, 'cache' from /analyze cache, 'neutral' fallback")
+    sigma_annual: float
+    atr_14: float
+    vol_target_weight: float = Field(..., description="target_vol / realized_vol, capped at 100%")
+    p_win: float = Field(..., description="Win probability mapped from composite score (calibration: beta)")
+    payoff_ratio: float = Field(..., description="avg 5-day gain / avg 5-day loss from real history")
+    kelly_full: float
+    kelly_quarter: float = Field(..., description="¼ Kelly (fractional Kelly, industry-standard damping)")
+    recommended_pct: float = Field(..., description="Final recommendation, % of capital")
+    cap_pct: float
+    stop_price: float = Field(..., description="Entry − 2×ATR(14)")
+    stop_pct: float
+    shares: int | None = None
+    position_value: float | None = None
+    formulas: list[str]
+    notes_ar: str
+
+
+@app.get("/position-size", response_model=PositionSizeResult)
+async def position_size(
+    ticker: str = Query(..., min_length=1, max_length=12),
+    profile: str = Query("balanced", description="conservative | balanced | aggressive"),
+    score: float | None = Query(None, ge=0, le=100, description="Composite score from /analyze (single source of truth)"),
+    capital: float | None = Query(None, gt=0, description="Optional capital to convert % into shares"),
+):
+    ticker = ticker.upper().strip()
+    prof = RISK_PROFILES.get(profile.lower())
+    if prof is None:
+        raise HTTPException(status_code=422, detail="profile must be conservative | balanced | aggressive")
+
+    daily_rows = await fetch_daily_ohlcv(ticker)
+    closes = _closes_oldest_first(daily_rows)
+    if closes.size < 30:
+        raise HTTPException(status_code=422, detail=f"Not enough history for {ticker}.")
+
+    price = float(closes[-1])
+    rets = _log_returns(closes)
+    sigma_ann = float(np.std(rets, ddof=1)) * math.sqrt(TRADING_DAYS)
+
+    # ATR(14) — true range on real OHLC
+    ordered = list(reversed(daily_rows))
+    trs = []
+    for i in range(1, len(ordered)):
+        h, l, pc = ordered[i]["high"], ordered[i]["low"], ordered[i - 1]["close"]
+        trs.append(max(h - l, abs(h - pc), abs(l - pc)))
+    atr = float(np.mean(trs[-14:])) if len(trs) >= 14 else float(np.mean(trs))
+
+    # composite score: prefer explicit param → /analyze cache → neutral 50
+    score_source = "client"
+    if score is None:
+        cached = _analysis_cache.get(ticker)
+        iw = (cached or {}).get("inference_weights") or {}
+        if iw.get("composite_score") is not None:
+            score = float(iw["composite_score"])
+            score_source = "cache"
+        else:
+            score = 50.0
+            score_source = "neutral"
+
+    # volatility targeting
+    w_vol = min(1.0, prof["target_vol"] / sigma_ann) if sigma_ann > 0 else 0.0
+
+    # fractional Kelly — p mapped from composite score (calibration in progress → beta)
+    p_win = max(0.35, min(0.65, 0.5 + (score - 50) / 100 * 0.30))
+    fwd = closes[5:] / closes[:-5] - 1.0
+    gains, losses = fwd[fwd > 0], fwd[fwd < 0]
+    payoff = float(gains.mean() / abs(losses.mean())) if gains.size and losses.size and losses.mean() != 0 else 1.0
+    kelly_full = p_win - (1 - p_win) / payoff if payoff > 0 else 0.0
+    kelly_quarter = max(0.0, kelly_full) * 0.25
+
+    if kelly_full <= 0:
+        recommended = 0.0
+        note = "الإشارة الحالية لا تدعم فتح مركز — كِيلي سالب، القيمة الموصى بها 0%."
+    else:
+        recommended = min(w_vol, kelly_quarter) * prof["multiplier"]
+        recommended = min(recommended, prof["cap"])
+        note = "الحجم = الأصغر بين استهداف التقلب و¼ كيلي، مضروبًا بمعامل ملف المخاطرة، بسقف صارم."
+
+    stop = price - 2 * atr
+    stop_pct = (price - stop) / price * 100
+
+    shares = pos_val = None
+    if capital:
+        pos_val = round(capital * recommended, 2)
+        shares = int(pos_val / price) if price > 0 else 0
+
+    return PositionSizeResult(
+        ticker=ticker,
+        currency=_currency_for(ticker),
+        price=round(price, 2),
+        profile=profile.lower(),
+        profile_ar=str(prof["label_ar"]),
+        composite_score_used=round(score, 1),
+        score_source=score_source,
+        sigma_annual=round(sigma_ann, 4),
+        atr_14=round(atr, 2),
+        vol_target_weight=round(w_vol, 4),
+        p_win=round(p_win, 3),
+        payoff_ratio=round(payoff, 3),
+        kelly_full=round(kelly_full, 4),
+        kelly_quarter=round(kelly_quarter, 4),
+        recommended_pct=round(recommended * 100, 2),
+        cap_pct=round(prof["cap"] * 100, 1),
+        stop_price=round(stop, 2),
+        stop_pct=round(stop_pct, 2),
+        shares=shares,
+        position_value=pos_val,
+        formulas=[
+            f"w_vol = σ_target / σ_realized = {prof['target_vol']:.0%} / {sigma_ann:.1%} = {w_vol:.1%}",
+            f"Kelly f* = p − (1−p)/b = {p_win:.2f} − {1-p_win:.2f}/{payoff:.2f} = {kelly_full:.1%}",
+            f"¼ Kelly = {kelly_quarter:.1%}",
+            f"الحجم النهائي = min(w_vol, ¼Kelly) × {prof['multiplier']} ≤ سقف {prof['cap']:.0%} = {recommended:.1%}",
+            f"وقف الخسارة = السعر − 2×ATR(14) = {price:.2f} − 2×{atr:.2f} = {stop:.2f}",
+        ],
+        notes_ar=note + " احتمال الربح p مشتق من الدرجة المركّبة — المعايرة التاريخية قيد التنفيذ (تجريبي).",
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────
+#  3. Shariah screening — AAOIFI-style ratios (BETA: fundamentals feed WIP)
+# ─────────────────────────────────────────────────────────────────────────
+
+# TODO(data): non-compliant income % requires a segment-revenue feed
+# (IdealRatings / Refinitiv). Until wired, the income screen and purification
+# rate are returned as null and the whole endpoint is flagged beta=true.
+
+AAOIFI_THRESHOLD = 30.0  # % of market cap, per AAOIFI screening standard
+
+_NON_COMPLIANT_INDUSTRIES: dict[str, str] = {
+    "banks": "بنوك تقليدية (فوائد ربوية)",
+    "insurance": "تأمين تقليدي",
+    "credit services": "خدمات ائتمان بفوائد",
+    "mortgage": "تمويل عقاري ربوي",
+    "brewers": "مشروبات كحولية",
+    "wineries": "مشروبات كحولية",
+    "distilleries": "مشروبات كحولية",
+    "tobacco": "تبغ",
+    "casinos": "قمار ومَيسِر",
+    "gambling": "قمار ومَيسِر",
+    "gaming": "قمار ومَيسِر",
+}
+
+
+class ShariahScreenResult(BaseModel):
+    ticker: str
+    company: str | None = None
+    sector: str | None = None
+    industry: str | None = None
+    status: str = Field(..., description="compliant | mixed | non_compliant | unknown")
+    status_ar: str
+    business_activity_pass: bool | None = None
+    business_flags: list[str] = Field(default_factory=list)
+    market_cap: float | None = None
+    debt_ratio_pct: float | None = Field(None, description="Interest-bearing debt / market cap, %")
+    debt_pass: bool | None = None
+    cash_ratio_pct: float | None = Field(None, description="(Cash + ST investments) / market cap, %")
+    cash_pass: bool | None = None
+    receivables_ratio_pct: float | None = Field(None, description="Receivables / market cap, %")
+    receivables_pass: bool | None = None
+    non_compliant_income_pct: float | None = Field(None, description="null = fundamentals feed pending (beta)")
+    purification_rate_pct: float | None = Field(None, description="نسبة التطهير — null until income feed is wired")
+    threshold_pct: float = AAOIFI_THRESHOLD
+    beta: bool = True
+    data_source: str = "Yahoo Finance balance sheet (annual) — income-segmentation feed pending"
+    notes_ar: str
+
+
+def _yf_shariah_screen(ticker: str) -> ShariahScreenResult:
+    stock = yf.Ticker(ticker.upper())
+    info: dict[str, Any] = {}
+    try:
+        info = stock.info or {}
+    except Exception as exc:
+        logger.warning("Shariah: info fetch failed for %s: %s", ticker, exc)
+
+    sector = info.get("sector")
+    industry = info.get("industry")
+    company = info.get("shortName") or info.get("longName")
+    mcap = info.get("marketCap")
+
+    haystack = f"{sector or ''} {industry or ''}".lower()
+    flags = [ar for kw, ar in _NON_COMPLIANT_INDUSTRIES.items() if kw in haystack]
+    business_pass: bool | None = (len(flags) == 0) if (sector or industry) else None
+
+    debt = cash = receivables = None
+    try:
+        bs = stock.balance_sheet
+        if bs is not None and not bs.empty:
+            latest = bs.iloc[:, 0]
+
+            def row(*names: str) -> float | None:
+                for n in names:
+                    if n in latest.index:
+                        v = latest[n]
+                        if v == v:  # not NaN
+                            return float(v)
+                return None
+
+            debt = row("Total Debt", "Long Term Debt And Capital Lease Obligation", "Long Term Debt")
+            cash = row(
+                "Cash Cash Equivalents And Short Term Investments",
+                "Cash And Cash Equivalents",
+                "Cash Financial",
+            )
+            receivables = row("Receivables", "Accounts Receivable", "Gross Accounts Receivable")
+    except Exception as exc:
+        logger.warning("Shariah: balance sheet fetch failed for %s: %s", ticker, exc)
+
+    def ratio(x: float | None) -> float | None:
+        if x is None or not mcap:
+            return None
+        return round(x / mcap * 100, 2)
+
+    debt_r, cash_r, recv_r = ratio(debt), ratio(cash), ratio(receivables)
+    debt_ok = (debt_r <= AAOIFI_THRESHOLD) if debt_r is not None else None
+    cash_ok = (cash_r <= AAOIFI_THRESHOLD) if cash_r is not None else None
+    recv_ok = (recv_r <= AAOIFI_THRESHOLD) if recv_r is not None else None
+
+    ratio_checks = [c for c in (debt_ok, cash_ok, recv_ok) if c is not None]
+
+    if business_pass is False:
+        status, status_ar = "non_compliant", "غير متوافق"
+        note = "النشاط الأساسي للشركة ضمن الأنشطة غير المتوافقة مع الشريعة."
+    elif business_pass is None and not ratio_checks:
+        status, status_ar = "unknown", "غير محدد"
+        note = "بيانات القوائم المالية غير متوفرة لهذا الرمز حاليًا."
+    elif ratio_checks and not all(ratio_checks):
+        status, status_ar = "non_compliant", "غير متوافق"
+        note = "إحدى النسب المالية تتجاوز حد 30% وفق منهجية AAOIFI."
+    elif ratio_checks and all(ratio_checks) and business_pass:
+        status, status_ar = "compliant", "حلال (مبدئي)"
+        note = "النشاط والنسب المالية ضمن حدود AAOIFI. فحص الدخل غير المتوافق قيد الربط — النتيجة مبدئية."
+    else:
+        status, status_ar = "mixed", "مختلط / قيد التحقق"
+        note = "بعض البيانات غير مكتملة — التصنيف النهائي بانتظار اكتمال مصدر البيانات الأساسية."
+
+    return ShariahScreenResult(
+        ticker=ticker.upper(),
+        company=company,
+        sector=sector,
+        industry=industry,
+        status=status,
+        status_ar=status_ar,
+        business_activity_pass=business_pass,
+        business_flags=flags,
+        market_cap=float(mcap) if mcap else None,
+        debt_ratio_pct=debt_r,
+        debt_pass=debt_ok,
+        cash_ratio_pct=cash_r,
+        cash_pass=cash_ok,
+        receivables_ratio_pct=recv_r,
+        receivables_pass=recv_ok,
+        non_compliant_income_pct=None,
+        purification_rate_pct=None,
+        notes_ar=note + " (تجريبي / قيد المعايرة)",
+    )
+
+
+@app.get("/shariah", response_model=ShariahScreenResult)
+async def shariah_screen(ticker: str = Query(..., min_length=1, max_length=12)):
+    return await asyncio.to_thread(_yf_shariah_screen, ticker.upper().strip())
+
+
+# ─────────────────────────────────────────────────────────────────────────
+#  4. Halal portfolio optimizer — Markowitz frontier, no-short (BETA basket)
+# ─────────────────────────────────────────────────────────────────────────
+
+# Demo basket: US large-caps commonly held by Shariah-screened ETFs
+# (SPUS / HLAL). TODO(data): replace with the live /shariah screen output
+# over a Tadawul + US universe once the fundamentals feed is wired.
+HALAL_DEMO_BASKET: list[tuple[str, str]] = [
+    ("AAPL", "أبل"),
+    ("MSFT", "مايكروسوفت"),
+    ("NVDA", "إنفيديا"),
+    ("GOOGL", "ألفابت"),
+    ("TSLA", "تسلا"),
+    ("XOM", "إكسون موبيل"),
+    ("PG", "بروكتر آند غامبل"),
+    ("JNJ", "جونسون آند جونسون"),
+]
+
+
+class FrontierPoint(BaseModel):
+    risk: float
+    ret: float
+
+
+class PortfolioAllocation(BaseModel):
+    weights: dict[str, float]
+    expected_return: float
+    risk: float
+    sharpe: float
+
+
+class OptimizeResult(BaseModel):
+    basket: list[str]
+    basket_ar: dict[str, str]
+    risk_profile: str
+    frontier: list[FrontierPoint]
+    cloud: list[FrontierPoint] = Field(default_factory=list, description="Random feasible portfolios (visual)")
+    optimal: PortfolioAllocation
+    min_vol: PortfolioAllocation
+    max_sharpe: PortfolioAllocation
+    n_samples: int
+    beta: bool = True
+    notes_ar: str = (
+        "سلة تجريبية من أسهم أمريكية مدرجة في صناديق مؤشرات شرعية (SPUS/HLAL). "
+        "التحسين حقيقي (ماركوويتز بدون بيع مكشوف) — ربط السلة بفلتر الشريعة الحي قيد التنفيذ. (تجريبي)"
+    )
+
+
+def _portfolio_stats(w: np.ndarray, mu: np.ndarray, cov: np.ndarray) -> tuple[float, float, float]:
+    ret = float(w @ mu)
+    vol = float(np.sqrt(w @ cov @ w))
+    sharpe = (ret - RISK_FREE_RATE) / vol if vol > 0 else 0.0
+    return ret, vol, sharpe
+
+
+def _alloc(w: np.ndarray, tickers: list[str], mu: np.ndarray, cov: np.ndarray) -> PortfolioAllocation:
+    ret, vol, sh = _portfolio_stats(w, mu, cov)
+    return PortfolioAllocation(
+        weights={t: round(float(x), 4) for t, x in zip(tickers, w) if x >= 0.005},
+        expected_return=round(ret, 4),
+        risk=round(vol, 4),
+        sharpe=round(sh, 3),
+    )
+
+
+@app.get("/optimize", response_model=OptimizeResult)
+async def optimize_portfolio(
+    risk_profile: str = Query("balanced", description="conservative | balanced | aggressive"),
+    n_samples: int = Query(12_000, ge=2000, le=30_000),
+):
+    profile = risk_profile.lower()
+    if profile not in RISK_PROFILES:
+        raise HTTPException(status_code=422, detail="risk_profile must be conservative | balanced | aggressive")
+
+    tickers = [t for t, _ in HALAL_DEMO_BASKET]
+    histories = await asyncio.gather(*[fetch_daily_ohlcv(t) for t in tickers])
+
+    # align on common dates
+    per_ticker: list[dict[str, float]] = [
+        {r["date"]: r["close"] for r in rows} for rows in histories
+    ]
+    common_dates = sorted(set.intersection(*[set(d.keys()) for d in per_ticker]))
+    if len(common_dates) < 60:
+        raise HTTPException(status_code=502, detail="Not enough overlapping history for the basket.")
+
+    price_matrix = np.array(
+        [[per_ticker[i][d] for d in common_dates] for i in range(len(tickers))], dtype=float
+    )
+    rets = np.diff(np.log(price_matrix), axis=1)
+    mu = rets.mean(axis=1) * TRADING_DAYS
+    cov = np.cov(rets) * TRADING_DAYS
+
+    def _sample() -> dict[str, Any]:
+        rng = np.random.default_rng(42)  # deterministic frontier per basket
+        W = rng.dirichlet(np.ones(len(tickers)), size=n_samples)
+        p_rets = W @ mu
+        p_vols = np.sqrt(np.einsum("ij,jk,ik->i", W, cov, W))
+        sharpes = (p_rets - RISK_FREE_RATE) / p_vols
+
+        # frontier: max return per volatility bucket
+        order = np.argsort(p_vols)
+        buckets = np.array_split(order, 40)
+        frontier_idx, best = [], -np.inf
+        for b in buckets:
+            if b.size == 0:
+                continue
+            top = b[np.argmax(p_rets[b])]
+            if p_rets[top] > best:  # enforce monotone upper hull
+                best = p_rets[top]
+                frontier_idx.append(int(top))
+
+        i_minvol = int(np.argmin(p_vols))
+        i_sharpe = int(np.argmax(sharpes))
+        # aggressive: highest-return frontier point
+        i_aggr = frontier_idx[int(np.argmax([p_rets[i] for i in frontier_idx]))]
+
+        cloud_idx = np.linspace(0, n_samples - 1, 350).astype(int)
+        return {
+            "W": W, "p_rets": p_rets, "p_vols": p_vols,
+            "frontier_idx": frontier_idx, "i_minvol": i_minvol,
+            "i_sharpe": i_sharpe, "i_aggr": i_aggr, "cloud_idx": cloud_idx,
+        }
+
+    s = await asyncio.to_thread(_sample)
+
+    pick = {"conservative": s["i_minvol"], "balanced": s["i_sharpe"], "aggressive": s["i_aggr"]}[profile]
+
+    return OptimizeResult(
+        basket=tickers,
+        basket_ar={t: ar for t, ar in HALAL_DEMO_BASKET},
+        risk_profile=profile,
+        frontier=[
+            FrontierPoint(risk=round(float(s["p_vols"][i]), 4), ret=round(float(s["p_rets"][i]), 4))
+            for i in s["frontier_idx"]
+        ],
+        cloud=[
+            FrontierPoint(risk=round(float(s["p_vols"][i]), 4), ret=round(float(s["p_rets"][i]), 4))
+            for i in s["cloud_idx"]
+        ],
+        optimal=_alloc(s["W"][pick], tickers, mu, cov),
+        min_vol=_alloc(s["W"][s["i_minvol"]], tickers, mu, cov),
+        max_sharpe=_alloc(s["W"][s["i_sharpe"]], tickers, mu, cov),
+        n_samples=n_samples,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────
+#  5. Walk-forward backtest — technical pillar vs buy & hold
+# ─────────────────────────────────────────────────────────────────────────
+
+class EquityPoint(BaseModel):
+    date: str
+    strategy: float
+    buyhold: float
+
+
+class BacktestResult(BaseModel):
+    ticker: str
+    period: str
+    n_days: int
+    signal_threshold: float = Field(..., description="Long when walk-forward technical score ≥ threshold")
+    hit_rate_pct: float | None = Field(None, description="% of long signals with positive 5-day forward return")
+    n_signals: int
+    brier_score: float | None = Field(None, description="Mean (score/100 − outcome)² on 5-day forward direction")
+    sharpe_strategy: float | None = None
+    sharpe_buyhold: float | None = None
+    max_dd_strategy_pct: float | None = None
+    max_dd_buyhold_pct: float | None = None
+    total_return_strategy_pct: float | None = None
+    total_return_buyhold_pct: float | None = None
+    exposure_pct: float | None = Field(None, description="% of days the strategy was in the market")
+    equity_curve: list[EquityPoint]
+    scope: str = Field(
+        "technical_pillar_only",
+        description="Walk-forward uses the technical pillar (RSI/MACD/slope/Z) — historical sentiment & analyst feeds pending",
+    )
+    validation_target: bool = Field(True, description="Full 4-pillar historical validation is a target, not yet achieved")
+    notes_ar: str = (
+        "اختبار زمني حقيقي للركيزة الفنية من الإشارة المركّبة (RSI/MACD/الميل/Z-Score) على بيانات سنتين فعلية. "
+        "أرشفة ركائز المشاعر والمحللين تاريخيًا قيد البناء — التحقق الكامل من الإشارة المركّبة «هدف التحقق»."
+    )
+
+
+def _walkforward_backtest(daily_rows: list[dict[str, Any]], threshold: float) -> dict[str, Any]:
+    ordered = list(reversed(daily_rows))  # oldest first
+    closes = np.array([r["close"] for r in ordered], dtype=float)
+    dates = [r["date"] for r in ordered]
+    n = closes.size
+
+    # causal RSI-14 (simple rolling mean of gains/losses, mirrors /analyze)
+    delta = np.diff(closes, prepend=closes[0])
+    gains = np.where(delta > 0, delta, 0.0)
+    losses = np.where(delta < 0, -delta, 0.0)
+    kern = np.ones(14) / 14
+    avg_g = np.convolve(gains, kern, mode="full")[: n]
+    avg_l = np.convolve(losses, kern, mode="full")[: n]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        rs = np.where(avg_l > 0, avg_g / avg_l, np.inf)
+    rsi = np.where(np.isinf(rs), 100.0, 100 - 100 / (1 + rs))
+
+    # causal MACD histogram
+    def ema(x: np.ndarray, span: int) -> np.ndarray:
+        k = 2 / (span + 1)
+        out = np.empty_like(x)
+        out[0] = x[0]
+        for i in range(1, x.size):
+            out[i] = x[i] * k + out[i - 1] * (1 - k)
+        return out
+
+    macd_line = ema(closes, 12) - ema(closes, 26)
+    macd_hist = macd_line - ema(macd_line, 9)
+
+    # causal trailing 10-day regression slope (% per day)
+    x10 = np.arange(10, dtype=float)
+    slope_w = (x10 - x10.mean()) / ((x10 - x10.mean()) ** 2).sum()
+    slopes = np.full(n, 0.0)
+    conv = np.convolve(closes, slope_w[::-1], mode="valid")  # slope at each trailing window end
+    slopes[9:] = conv
+    slope_pct = np.divide(slopes, closes, out=np.zeros_like(slopes), where=closes > 0) * 100
+
+    # causal trailing 20-day z-score
+    z = np.zeros(n)
+    csum = np.cumsum(np.insert(closes, 0, 0))
+    csum2 = np.cumsum(np.insert(closes**2, 0, 0))
+    for i in range(19, n):
+        w = 20
+        m = (csum[i + 1] - csum[i + 1 - w]) / w
+        var = (csum2[i + 1] - csum2[i + 1 - w]) / w - m * m
+        sd = math.sqrt(max(var, 0.0))
+        z[i] = (closes[i] - m) / sd if sd > 0 else 0.0
+
+    # technical pillar score (same mapping as calculate_inference_weights)
+    rsi_pts = np.zeros(n)
+    rsi_pts[rsi < 30] = 1
+    rsi_pts[rsi < 20] = 2
+    rsi_pts[rsi > 70] = -1
+    rsi_pts[rsi > 80] = -2
+    macd_pts = np.where(macd_hist > 0, 1.0, -1.0)
+    gauge = np.clip(((rsi_pts + macd_pts + 3) / 6) * 100, 0, 100)
+    slope_score = np.clip(50 + slope_pct * 25, 0, 100)
+    z_score_comp = np.clip(50 - z * 20, 0, 100)
+    tech = gauge * 0.40 + slope_score * 0.35 + z_score_comp * 0.25
+
+    warmup = 40
+    daily_ret = np.diff(closes) / closes[:-1]  # ret[t] = day t+1 return
+    pos = (tech >= threshold).astype(float)
+
+    strat_ret = pos[warmup:-1] * daily_ret[warmup:]
+    bh_ret = daily_ret[warmup:]
+
+    eq_strat = np.cumprod(1 + strat_ret)
+    eq_bh = np.cumprod(1 + bh_ret)
+
+    def sharpe(r: np.ndarray) -> float | None:
+        if r.size < 20 or r.std(ddof=1) == 0:
+            return None
+        return round(float(r.mean() / r.std(ddof=1) * math.sqrt(TRADING_DAYS)), 2)
+
+    def max_dd(eq: np.ndarray) -> float | None:
+        if eq.size == 0:
+            return None
+        peak = np.maximum.accumulate(eq)
+        return round(float(((eq - peak) / peak).min()) * 100, 2)
+
+    # hit rate + Brier on 5-day forward direction
+    idx = np.arange(warmup, n - 5)
+    fwd_up = (closes[idx + 5] > closes[idx]).astype(float)
+    probs = np.clip(tech[idx] / 100, 0.01, 0.99)
+    brier = round(float(np.mean((probs - fwd_up) ** 2)), 4) if idx.size else None
+    long_mask = tech[idx] >= threshold
+    n_signals = int(long_mask.sum())
+    hit = round(float(fwd_up[long_mask].mean()) * 100, 1) if n_signals > 0 else None
+
+    # thinned equity curve
+    eq_dates = dates[warmup + 1:]
+    step = max(1, len(eq_strat) // 200)
+    curve = [
+        EquityPoint(date=eq_dates[i], strategy=round(float(eq_strat[i]), 4), buyhold=round(float(eq_bh[i]), 4))
+        for i in range(0, len(eq_strat), step)
+    ]
+
+    return {
+        "n_days": int(n),
+        "hit_rate_pct": hit,
+        "n_signals": n_signals,
+        "brier_score": brier,
+        "sharpe_strategy": sharpe(strat_ret),
+        "sharpe_buyhold": sharpe(bh_ret),
+        "max_dd_strategy_pct": max_dd(eq_strat),
+        "max_dd_buyhold_pct": max_dd(eq_bh),
+        "total_return_strategy_pct": round(float(eq_strat[-1] - 1) * 100, 2) if eq_strat.size else None,
+        "total_return_buyhold_pct": round(float(eq_bh[-1] - 1) * 100, 2) if eq_bh.size else None,
+        "exposure_pct": round(float(pos[warmup:].mean()) * 100, 1),
+        "equity_curve": curve,
+    }
+
+
+@app.get("/backtest", response_model=BacktestResult)
+async def backtest(
+    ticker: str = Query(..., min_length=1, max_length=12),
+    threshold: float = Query(55.0, ge=40, le=80),
+):
+    ticker = ticker.upper().strip()
+    daily_rows = await fetch_daily_ohlcv(ticker, period="2y")
+    if len(daily_rows) < 120:
+        raise HTTPException(status_code=422, detail=f"Not enough history for {ticker} to backtest.")
+
+    result = await asyncio.to_thread(_walkforward_backtest, daily_rows, threshold)
+    return BacktestResult(ticker=ticker, period="2y", signal_threshold=threshold, **result)
+
+
+# ─────────────────────────────────────────────────────────────────────────
+#  6. Arabic agentic copilot — GPT-4o tool-calling over the live endpoints
+# ─────────────────────────────────────────────────────────────────────────
+
+ARABIC_TICKER_MAP: dict[str, str] = {
+    "أرامكو": "2222.SR", "ارامكو": "2222.SR",
+    "الراجحي": "1120.SR", "مصرف الراجحي": "1120.SR",
+    "سابك": "2010.SR",
+    "اس تي سي": "7010.SR", "إس تي سي": "7010.SR", "الاتصالات السعودية": "7010.SR",
+    "أكوا باور": "2082.SR", "اكوا باور": "2082.SR",
+    "معادن": "1211.SR",
+    "أبل": "AAPL", "آبل": "AAPL", "ابل": "AAPL",
+    "مايكروسوفت": "MSFT",
+    "تسلا": "TSLA",
+    "إنفيديا": "NVDA", "انفيديا": "NVDA", "نفيديا": "NVDA",
+    "أمازون": "AMZN", "امازون": "AMZN",
+    "جوجل": "GOOGL", "قوقل": "GOOGL", "ألفابت": "GOOGL",
+    "ميتا": "META", "فيسبوك": "META",
+    "لوسيد": "LCID",
+}
+
+COPILOT_SYSTEM_PROMPT = (
+    "أنت «مُرشِد» — المحلل الكمّي الذكي لمنصة MSA، تخاطب مستثمرًا عربيًا.\n\n"
+    "قواعد صارمة (عدم الالتزام بها يُعد فشلًا):\n"
+    "1. لا تذكر أي رقم أو نسبة أو سعر إلا إذا ورد حرفيًا في نتائج الأدوات في هذه المحادثة. "
+    "ممنوع منعًا باتًا اختلاق أو تقدير أو «تذكّر» أي أرقام من معرفتك السابقة.\n"
+    "2. إذا فشلت أداة أو أعادت خطأ: قل ذلك صراحة («تعذّر جلب البيانات لهذا الجزء») ولا تحاول تعويض النقص بأرقام من عندك.\n"
+    "3. اذكر مصدر كل معلومة بين قوسين: (Yahoo Finance)، (FinBERT)، (CNN Fear & Greed)، (محاكاة GBM)، (فلتر AAOIFI — تجريبي).\n"
+    "4. أجب بالعربية الفصحى الواضحة. اترك رموز الأسهم والمصطلحات التقنية (RSI, MACD, VaR) بالإنجليزية.\n"
+    "5. حوّل أسماء الشركات العربية إلى رموز باستخدام هذه الخريطة قبل استدعاء الأدوات: "
+    + json.dumps(ARABIC_TICKER_MAP, ensure_ascii=False)
+    + "\n6. الأسهم السعودية تُدعم عبر لاحقة .SR (بيانات Yahoo Finance، قد تكون تغطية الأخبار والمحللين محدودة — قل ذلك عند حدوثه).\n"
+    "7. نتيجة الفحص الشرعي تجريبية (قيد المعايرة) — قلها دائمًا عند عرضها.\n"
+    "8. اختم دائمًا بسطر: «هذا تحليل كمّي وليس توصية استثمارية.»\n"
+    "9. كن موجزًا ومنظمًا: حكم واضح أولًا، ثم الأرقام الداعمة في نقاط قصيرة."
+)
+
+CHAT_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_stock",
+            "description": "التحليل الكامل لسهم: السعر، الدرجة المركّبة (0-100)، الركائز الأربع، RSI/MACD/Z-Score، مشاعر الأخبار FinBERT، إجماع المحللين، حكم GPT-4o.",
+            "parameters": {
+                "type": "object",
+                "properties": {"ticker": {"type": "string", "description": "رمز السهم، مثل AAPL أو 2222.SR"}},
+                "required": ["ticker"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "monte_carlo",
+            "description": "محاكاة مونت كارلو (GBM، 10,000 مسار) لتوزيع السعر المستقبلي: VaR، CVaR، واحتمال بلوغ سعر مستهدف.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ticker": {"type": "string"},
+                    "horizon_days": {"type": "integer", "description": "أيام التداول، افتراضي 63"},
+                    "target": {"type": "number", "description": "السعر المستهدف (اختياري)"},
+                },
+                "required": ["ticker"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "shariah_screen",
+            "description": "فحص شرعي تجريبي وفق نسب AAOIFI (الدين/القيمة السوقية، النقد، الذمم) وفلتر النشاط. النتيجة: حلال / مختلط / غير متوافق.",
+            "parameters": {
+                "type": "object",
+                "properties": {"ticker": {"type": "string"}},
+                "required": ["ticker"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "position_size",
+            "description": "حجم المركز الموصى به (% من رأس المال) عبر استهداف التقلب و¼ كيلي، مع مستوى وقف الخسارة (2×ATR).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ticker": {"type": "string"},
+                    "profile": {"type": "string", "enum": ["conservative", "balanced", "aggressive"]},
+                },
+                "required": ["ticker"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "backtest_signal",
+            "description": "اختبار زمني (سنتان) للركيزة الفنية من الإشارة مقابل الشراء والاحتفاظ: نسبة الإصابة، Brier، Sharpe، أقصى تراجع.",
+            "parameters": {
+                "type": "object",
+                "properties": {"ticker": {"type": "string"}},
+                "required": ["ticker"],
+            },
+        },
+    },
+]
+
+
+def _compact_analysis(a: AnalysisResponse) -> dict[str, Any]:
+    """Trim the /analyze payload to the numbers the copilot may quote."""
+    iw, t, zs, pt = a.inference_weights, a.technicals, a.zscore_analysis, a.price_target
+    return {
+        "ticker": a.ticker,
+        "currency": _currency_for(a.ticker),
+        "price": pt.current if pt else None,
+        "daily_change_pct": pt.daily_change_pct if pt else None,
+        "composite_score_0_100": iw.composite_score if iw else None,
+        "composite_signal": iw.composite_signal if iw else None,
+        "pillars": {
+            "technical_35pct": iw.technical_score if iw else None,
+            "sentiment_25pct": iw.sentiment_score if iw else None,
+            "analyst_20pct": iw.analyst_score if iw else None,
+            "volume_20pct": iw.volume_score if iw else None,
+        } if iw else None,
+        "rsi_14": t.rsi_14 if t else None,
+        "rsi_signal": t.rsi_signal if t else None,
+        "macd_trend": t.macd_trend if t else None,
+        "sma_signal": a.moving_averages.signal,
+        "zscore_20d": zs.zscore if zs else None,
+        "zscore_signal": zs.signal if zs else None,
+        "reversal_probability_pct": zs.reversal_probability if zs else None,
+        "bollinger_position": a.bollinger_bands.position if a.bollinger_bands else None,
+        "obv_divergence": a.obv_analysis.divergence if a.obv_analysis else None,
+        "news_sentiment": a.news_sentiment.label if a.news_sentiment else None,
+        "news_pos_neg_neu": [a.news_sentiment.positive, a.news_sentiment.negative, a.news_sentiment.neutral] if a.news_sentiment else None,
+        "fear_greed": {"value": a.fear_greed.value, "label": a.fear_greed.label},
+        "analyst_recommendation": a.analyst_ratings.recommendation if a.analyst_ratings else None,
+        "analyst_target_mean": pt.target_mean if pt else None,
+        "upside_to_target_pct": pt.upside_pct if pt else None,
+        "gpt_verdict": a.gpt_analysis.actionable_insight if a.gpt_analysis else None,
+        "gpt_confidence": a.gpt_analysis.confidence_score if a.gpt_analysis else None,
+        "sources": ["Yahoo Finance (yfinance)", "ProsusAI/FinBERT", "CNN Fear & Greed", "GPT-4o"],
+    }
+
+
+async def _execute_copilot_tool(name: str, args: dict[str, Any]) -> tuple[str, bool]:
+    """Run a copilot tool against the real endpoints. Returns (json_str, ok)."""
+    try:
+        ticker = str(args.get("ticker", "")).upper().strip()
+        if name == "analyze_stock":
+            res = await analyze(ticker=ticker)
+            return json.dumps(_compact_analysis(res), ensure_ascii=False), True
+        if name == "monte_carlo":
+            res = await monte_carlo(
+                ticker=ticker,
+                horizon_days=int(args.get("horizon_days") or 63),
+                n_paths=10_000,
+                target=args.get("target"),
+                seed=None,
+            )
+            d = res.model_dump()
+            for k in ("p05", "p25", "p50", "p75", "p95", "sample_paths"):
+                d.pop(k, None)  # copilot needs the risk numbers, not the curves
+            return json.dumps(d, ensure_ascii=False), True
+        if name == "shariah_screen":
+            res = await shariah_screen(ticker=ticker)
+            return json.dumps(res.model_dump(), ensure_ascii=False), True
+        if name == "position_size":
+            res = await position_size(
+                ticker=ticker,
+                profile=str(args.get("profile") or "balanced"),
+                score=None,
+                capital=None,
+            )
+            return json.dumps(res.model_dump(), ensure_ascii=False), True
+        if name == "backtest_signal":
+            res = await backtest(ticker=ticker, threshold=55.0)
+            d = res.model_dump()
+            d.pop("equity_curve", None)
+            return json.dumps(d, ensure_ascii=False), True
+        return json.dumps({"error": f"unknown tool {name}"}), False
+    except HTTPException as exc:
+        return json.dumps({"error": f"{exc.status_code}: {exc.detail}"}, ensure_ascii=False), False
+    except Exception as exc:
+        logger.warning("Copilot tool %s failed: %s", name, exc)
+        return json.dumps({"error": str(exc)}, ensure_ascii=False), False
+
+
+class ChatMessage(BaseModel):
+    role: str = Field(..., pattern="^(user|assistant)$")
+    content: str = Field(..., max_length=4000)
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=2000)
+    history: list[ChatMessage] = Field(default_factory=list, description="Previous turns (last 8 kept)")
+
+
+class ChatResponse(BaseModel):
+    reply: str
+    tools_used: list[str] = Field(default_factory=list)
+    tool_failures: list[str] = Field(default_factory=list)
+    sources: list[str] = Field(default_factory=list)
+
+
+@app.post("/chat", response_model=ChatResponse)
+async def copilot_chat(req: ChatRequest):
+    if not OPENAI_API_KEY:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured.")
+
+    client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+
+    messages: list[dict[str, Any]] = [{"role": "system", "content": COPILOT_SYSTEM_PROMPT}]
+    for m in req.history[-8:]:
+        messages.append({"role": m.role, "content": m.content})
+    messages.append({"role": "user", "content": req.message})
+
+    tools_used: list[str] = []
+    tool_failures: list[str] = []
+
+    for _ in range(5):  # bounded agent loop
+        completion = await client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            tools=CHAT_TOOLS,
+            tool_choice="auto",
+            temperature=0.2,
+            max_tokens=900,
+        )
+        msg = completion.choices[0].message
+
+        if not msg.tool_calls:
+            reply = (msg.content or "").strip()
+            if not reply:
+                reply = "تعذّر توليد إجابة — حاول مرة أخرى."
+            sources = sorted(
+                {s for s in [
+                    "Yahoo Finance" if any(t in tools_used for t in ("analyze_stock", "monte_carlo", "position_size", "backtest_signal", "shariah_screen")) else None,
+                    "FinBERT" if "analyze_stock" in tools_used else None,
+                    "CNN Fear & Greed" if "analyze_stock" in tools_used else None,
+                    "GBM Monte Carlo (10,000 مسار)" if "monte_carlo" in tools_used else None,
+                    "AAOIFI screen (تجريبي)" if "shariah_screen" in tools_used else None,
+                    "GPT-4o",
+                ] if s}
+            )
+            return ChatResponse(reply=reply, tools_used=tools_used, tool_failures=tool_failures, sources=sources)
+
+        messages.append({
+            "role": "assistant",
+            "content": msg.content,
+            "tool_calls": [tc.model_dump() for tc in msg.tool_calls],
+        })
+
+        for tc in msg.tool_calls:
+            try:
+                args = json.loads(tc.function.arguments or "{}")
+            except json.JSONDecodeError:
+                args = {}
+            result, ok = await _execute_copilot_tool(tc.function.name, args)
+            tools_used.append(tc.function.name)
+            if not ok:
+                tool_failures.append(tc.function.name)
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tc.id,
+                "content": result,
+            })
+
+    return ChatResponse(
+        reply="تجاوزت المحادثة الحد الأقصى لاستدعاءات الأدوات — جرّب سؤالًا أبسط.",
+        tools_used=tools_used,
+        tool_failures=tool_failures,
+        sources=[],
+    )
 
 
 if __name__ == "__main__":
