@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مُرشِد — المحطة الكمّية</title>
+<link rel="icon" type="image/x-icon" href="images/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════ Design tokens — deep navy quant terminal ═══════════ */
+:root{
+  --bg:#050d1a; --bg2:#071120;
+  --panel:#0a1628; --panel2:#0e1d36; --panel-glow:rgba(45,212,191,.04);
+  --line:rgba(148,180,220,.10); --line2:rgba(148,180,220,.20);
+  --ink:#e9eff8; --ink2:#a9bcd4; --muted:#64799a;
+  --teal:#2dd4bf; --teal-deep:#0d9488; --mint:#34d399;
+  --gold:#e8c268; --gold-deep:#caa64a;
+  --green:#22c55e; --red:#ef5350; --amber:#f5b04c;
+  --violet:#8b5cf6;
+  --radius:14px;
+  --font:'IBM Plex Sans Arabic',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(13,148,136,.10), transparent 60%),
+    radial-gradient(900px 500px at 10% 110%, rgba(139,92,246,.05), transparent 60%),
+    var(--bg);
+  color:var(--ink); font-family:var(--font); min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+.num{font-family:var(--mono); font-feature-settings:"tnum"; direction:ltr; unicode-bidi:embed}
+a{color:inherit; text-decoration:none}
+button{font-family:var(--font); cursor:pointer}
+input{font-family:var(--font)}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:#1d3050;border-radius:8px}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001s!important;transition-duration:.001s!important}
+}
+
+/* ═══════════ Shell ═══════════ */
+.shell{max-width:1420px;margin:0 auto;padding:0 22px 90px}
+header.top{
+  position:sticky;top:0;z-index:50;
+  background:rgba(5,13,26,.82);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+  margin:0 -22px;padding:0 22px;
+}
+.top-inner{max-width:1420px;margin:0 auto;display:flex;align-items:center;gap:18px;height:62px}
+.brand{display:flex;align-items:center;gap:10px;white-space:nowrap}
+.brand .mark{width:30px;height:30px;border-radius:9px;
+  background:linear-gradient(135deg,var(--teal-deep),var(--teal));
+  display:grid;place-items:center;font-weight:700;color:#03251f;font-size:15px;
+  box-shadow:0 0 18px rgba(45,212,191,.25)}
+.brand b{font-size:17px;letter-spacing:.2px}
+.brand small{color:var(--muted);font-size:11px;display:block;margin-top:-2px}
+.tagline{color:var(--gold);font-size:12.5px;font-weight:500;white-space:nowrap;
+  border:1px solid rgba(232,194,104,.25);border-radius:99px;padding:5px 13px;
+  background:rgba(232,194,104,.06)}
+.top .grow{flex:1}
+.nav-links{display:flex;gap:6px;align-items:center}
+.nav-links a{font-size:12.5px;color:var(--ink2);padding:7px 12px;border-radius:9px;transition:.2s}
+.nav-links a:hover{background:rgba(148,180,220,.08);color:var(--ink)}
+.profile-pill{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;
+  border:1px solid var(--line2);border-radius:99px;padding:7px 14px;background:var(--panel);
+  color:var(--ink2);transition:.2s}
+.profile-pill:hover{border-color:var(--teal);color:var(--ink)}
+.profile-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--teal)}
+
+/* ═══════════ Command bar (search + copilot) ═══════════ */
+.command-zone{margin:26px 0 8px}
+.hero-title{text-align:center;margin:34px 0 6px;font-size:clamp(22px,3.4vw,34px);font-weight:700;line-height:1.5}
+.hero-title .gold{color:var(--gold)}
+.hero-sub{text-align:center;color:var(--ink2);font-size:14px;margin-bottom:26px}
+.hero-sub .en{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.cmdbar{display:flex;gap:10px;max-width:860px;margin:0 auto}
+.searchbox{flex:1;display:flex;align-items:center;gap:10px;background:var(--panel);
+  border:1px solid var(--line2);border-radius:var(--radius);padding:4px 16px;transition:.25s}
+.searchbox:focus-within{border-color:var(--teal);box-shadow:0 0 0 3px rgba(45,212,191,.12)}
+.searchbox svg{flex:none;opacity:.5}
+.searchbox input{flex:1;background:none;border:0;outline:0;color:var(--ink);
+  font-size:15px;padding:12px 0}
+.searchbox input::placeholder{color:var(--muted)}
+.btn{border:0;border-radius:var(--radius);font-weight:700;font-size:14px;padding:0 26px;
+  background:linear-gradient(135deg,var(--teal-deep),var(--teal));color:#03251f;transition:.2s}
+.btn:hover{filter:brightness(1.12)}
+.btn:disabled{opacity:.5;cursor:wait}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:14px auto 0;max-width:860px}
+.chip{font-size:12px;color:var(--ink2);background:var(--panel);border:1px solid var(--line);
+  border-radius:99px;padding:6px 13px;transition:.2s}
+.chip:hover{border-color:var(--teal);color:var(--teal)}
+.chip b{font-family:var(--mono);color:var(--ink);font-weight:500}
+
+/* ═══════════ Copilot ═══════════ */
+.copilot{max-width:860px;margin:22px auto 0;background:var(--panel);
+  border:1px solid var(--line);border-radius:18px;overflow:hidden;
+  box-shadow:0 18px 50px rgba(0,0,0,.35)}
+.copilot-head{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(45,212,191,.05),transparent)}
+.copilot-head .ai-dot{width:9px;height:9px;border-radius:50%;background:var(--mint);
+  box-shadow:0 0 10px var(--mint);animation:pulse 2.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+.copilot-head b{font-size:14px}
+.copilot-head span{color:var(--muted);font-size:11.5px}
+.chat-log{max-height:380px;overflow-y:auto;padding:16px 18px;display:none;flex-direction:column;gap:12px}
+.chat-log.open{display:flex}
+.msg{max-width:85%;padding:11px 15px;border-radius:14px;font-size:13.5px;line-height:1.9;white-space:pre-wrap}
+.msg.user{align-self:flex-start;background:var(--panel2);border:1px solid var(--line)}
+.msg.bot{align-self:flex-end;background:rgba(13,148,136,.10);border:1px solid rgba(45,212,191,.22)}
+.msg.err{align-self:flex-end;background:rgba(239,83,80,.08);border:1px solid rgba(239,83,80,.3);color:#ffb4b2}
+.msg .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)}
+.msg .meta .tag{font-size:10.5px;font-family:var(--mono);color:var(--teal);
+  background:rgba(45,212,191,.08);border-radius:6px;padding:2px 8px}
+.msg .meta .tag.src{color:var(--ink2);background:rgba(148,180,220,.08)}
+.msg .meta .tag.fail{color:var(--red);background:rgba(239,83,80,.08)}
+.typing{align-self:flex-end;display:flex;gap:5px;padding:14px 18px}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--teal);animation:blink 1.2s infinite}
+.typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.chat-input{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--line)}
+.chat-input input{flex:1;background:var(--bg2);border:1px solid var(--line);border-radius:11px;
+  padding:11px 15px;color:var(--ink);font-size:13.5px;outline:0;transition:.2s}
+.chat-input input:focus{border-color:var(--teal)}
+.chat-input button{border:0;border-radius:11px;padding:0 20px;font-weight:700;font-size:13px;
+  background:var(--teal-deep);color:#eafffa;transition:.2s}
+.chat-input button:hover{background:var(--teal)}
+.chat-input button:disabled{opacity:.5;cursor:wait}
+.chat-suggest{display:flex;flex-wrap:wrap;gap:7px;padding:0 16px 14px}
+.chat-suggest button{font-size:11.5px;color:var(--ink2);background:var(--bg2);
+  border:1px solid var(--line);border-radius:99px;padding:5px 12px;transition:.2s}
+.chat-suggest button:hover{color:var(--teal);border-color:var(--teal)}
+
+/* ═══════════ Hero result strip ═══════════ */
+.hero-strip{display:none;grid-template-columns:1fr auto auto;gap:18px;align-items:stretch;
+  margin:30px 0 18px;padding:22px 26px;background:linear-gradient(180deg,var(--panel2),var(--panel));
+  border:1px solid var(--line);border-radius:18px}
+.hero-strip.show{display:grid;animation:rise .5s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.hs-id .tick{font-family:var(--mono);font-size:13px;color:var(--muted);letter-spacing:1px}
+.hs-id h2{font-size:26px;margin:2px 0 8px}
+.hs-price{display:flex;align-items:baseline;gap:12px}
+.hs-price .p{font-family:var(--mono);font-size:34px;font-weight:600;color:var(--gold)}
+.hs-price .chg{font-family:var(--mono);font-size:14px;font-weight:500}
+.up{color:var(--green)}.down{color:var(--red)}
+.badges{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;
+  border-radius:99px;padding:6px 14px;border:1px solid}
+.badge.sig-buy{color:var(--green);border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08)}
+.badge.sig-sell{color:var(--red);border-color:rgba(239,83,80,.35);background:rgba(239,83,80,.08)}
+.badge.sig-hold{color:var(--amber);border-color:rgba(245,176,76,.35);background:rgba(245,176,76,.08)}
+.badge.sig-watch{color:var(--ink2);border-color:var(--line2);background:rgba(148,180,220,.06)}
+.badge.halal{color:var(--green);border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08)}
+.badge.mixed{color:var(--amber);border-color:rgba(245,176,76,.35);background:rgba(245,176,76,.08)}
+.badge.haram{color:var(--red);border-color:rgba(239,83,80,.35);background:rgba(239,83,80,.08)}
+.badge .beta-mini{font-size:9.5px;font-weight:500;color:var(--amber);border:1px solid rgba(245,176,76,.4);
+  border-radius:5px;padding:1px 5px}
+.hs-gauge{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:170px}
+.hs-gauge .glabel{font-size:11.5px;color:var(--muted);margin-top:6px}
+.hs-verdict{max-width:330px;border-right:1px solid var(--line);padding-right:22px;
+  display:flex;flex-direction:column;justify-content:center;gap:8px}
+.hs-verdict .vh{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.4px}
+.hs-verdict .vt{font-size:13.5px;line-height:1.8}
+.hs-verdict .vc{font-size:11.5px;color:var(--ink2)}
+.hs-verdict .vc b{color:var(--gold);font-family:var(--mono)}
+
+/* ═══════════ Grid & panels ═══════════ */
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:18px}
+.panel{grid-column:span 6;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);padding:20px 22px;position:relative;
+  transition:border-color .25s}
+.panel:hover{border-color:var(--line2)}
+.panel.wide{grid-column:span 12}
+.panel.third{grid-column:span 4}
+@media(max-width:1080px){.panel,.panel.third{grid-column:span 12}
+  .hero-strip{grid-template-columns:1fr}.hs-verdict{border:0;padding:0;max-width:none}}
+.p-head{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.p-head h3{font-size:15px;font-weight:700}
+.p-head .en{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.5px}
+.p-head .grow{flex:1}
+.beta-tag{font-size:10.5px;font-weight:600;color:var(--amber);
+  border:1px solid rgba(245,176,76,.4);border-radius:6px;padding:2px 8px;
+  background:rgba(245,176,76,.06)}
+.foot-note{margin-top:14px;font-size:11px;color:var(--muted);line-height:1.8;
+  border-top:1px dashed var(--line);padding-top:10px}
+.skel{position:relative;overflow:hidden;background:var(--panel2);border-radius:8px;min-height:14px}
+.skel::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(148,180,220,.07),transparent);
+  animation:shimmer 1.4s infinite}
+@keyframes shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.panel-err{display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;
+  min-height:120px;color:var(--muted);font-size:13px}
+.panel-err button{font-size:12px;color:var(--teal);background:none;border:1px solid var(--teal);
+  border-radius:8px;padding:6px 16px}
+.hidden{display:none!important}
+
+/* explainability bars */
+.xp-row{margin-bottom:14px}
+.xp-top{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;margin-bottom:6px}
+.xp-top .nm{color:var(--ink2)}
+.xp-top .nm b{color:var(--ink);font-weight:600}
+.xp-top .pts{font-family:var(--mono);font-size:12px;color:var(--gold)}
+.xp-track{height:10px;background:var(--bg2);border-radius:99px;overflow:hidden;position:relative}
+.xp-track .mid{position:absolute;top:0;bottom:0;right:50%;width:1px;background:var(--line2)}
+.xp-fill{height:100%;border-radius:99px;width:0;
+  background:linear-gradient(90deg,var(--teal-deep),var(--teal));
+  transition:width 1s cubic-bezier(.22,.8,.28,1)}
+.xp-fill.neg{background:linear-gradient(90deg,#b23f3c,var(--red))}
+.xp-formula{margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--muted);
+  direction:ltr;text-align:left;background:var(--bg2);border-radius:9px;padding:10px 12px;line-height:1.9}
+.xp-formula b{color:var(--gold)}
+
+/* stat tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.tile{background:var(--bg2);border:1px solid var(--line);border-radius:11px;padding:12px 14px}
+.tile .tl{font-size:11px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.tile .tv{font-family:var(--mono);font-size:17px;font-weight:600}
+.tile .tv small{font-size:11px;color:var(--muted);font-weight:400}
+.tile .ts{font-size:11px;margin-top:3px;color:var(--ink2)}
+.tile.gold .tv{color:var(--gold)}
+.tile.teal .tv{color:var(--teal)}
+
+/* shariah */
+.sh-status{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.sh-icon{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:22px}
+.sh-icon.halal{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3)}
+.sh-icon.mixed{background:rgba(245,176,76,.1);border:1px solid rgba(245,176,76,.3)}
+.sh-icon.haram{background:rgba(239,83,80,.1);border:1px solid rgba(239,83,80,.3)}
+.sh-status .st{font-size:19px;font-weight:700}
+.sh-status .st.halal{color:var(--green)}.sh-status .st.mixed{color:var(--amber)}.sh-status .st.haram{color:var(--red)}
+.sh-status .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.ratio-row{margin-bottom:13px}
+.ratio-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+.ratio-top .nm{color:var(--ink2)}
+.ratio-top .vl{font-family:var(--mono)}
+.ratio-top .vl.ok{color:var(--green)}.ratio-top .vl.bad{color:var(--red)}.ratio-top .vl.na{color:var(--muted)}
+.ratio-track{height:8px;background:var(--bg2);border-radius:99px;position:relative;overflow:visible}
+.ratio-fill{height:100%;border-radius:99px;width:0;transition:width .9s cubic-bezier(.22,.8,.28,1)}
+.ratio-fill.ok{background:linear-gradient(90deg,#15803d,var(--green))}
+.ratio-fill.bad{background:linear-gradient(90deg,#b23f3c,var(--red))}
+.ratio-thr{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--gold);border-radius:2px}
+.ratio-thr::after{content:"30%";position:absolute;top:-16px;right:-12px;font-family:var(--mono);
+  font-size:9.5px;color:var(--gold)}
+
+/* position sizing */
+.pos-hero{display:flex;align-items:center;gap:22px;margin-bottom:16px;flex-wrap:wrap}
+.pos-big{font-family:var(--mono);font-size:46px;font-weight:600;color:var(--gold);line-height:1}
+.pos-big small{font-size:18px;color:var(--gold-deep)}
+.pos-cap{font-size:11.5px;color:var(--muted);margin-top:6px}
+.formula-toggle{font-size:11.5px;color:var(--teal);background:none;border:0;padding:0;text-decoration:underline dotted}
+.formula-box{display:none;margin-top:12px;background:var(--bg2);border-radius:10px;padding:12px 14px}
+.formula-box.open{display:block}
+.formula-box div{font-family:var(--mono);font-size:11px;color:var(--ink2);direction:ltr;text-align:left;
+  padding:3px 0;line-height:1.8}
+
+/* controls */
+.ctrl-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;font-size:12px;color:var(--ink2)}
+.seg{display:flex;background:var(--bg2);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{font-size:11.5px;padding:6px 13px;background:none;border:0;color:var(--muted);transition:.2s}
+.seg button.on{background:var(--teal-deep);color:#eafffa;font-weight:600}
+.mini-input{width:96px;background:var(--bg2);border:1px solid var(--line);border-radius:9px;
+  color:var(--ink);font-family:var(--mono);font-size:12px;padding:6px 10px;outline:0;direction:ltr;text-align:center}
+.mini-input:focus{border-color:var(--teal)}
+
+canvas.viz{width:100%;display:block}
+.legend{display:flex;gap:16px;font-size:11.5px;color:var(--ink2);margin-top:10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-left:6px;vertical-align:middle}
+
+/* allocation bars */
+.alloc-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:12px}
+.alloc-row .tk{font-family:var(--mono);width:52px;color:var(--ink);direction:ltr;text-align:left}
+.alloc-row .nm{width:110px;color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alloc-row .bar{flex:1;height:9px;background:var(--bg2);border-radius:99px;overflow:hidden}
+.alloc-row .bar i{display:block;height:100%;width:0;border-radius:99px;
+  background:linear-gradient(90deg,var(--teal-deep),var(--teal));transition:width .9s cubic-bezier(.22,.8,.28,1)}
+.alloc-row .pc{font-family:var(--mono);width:56px;color:var(--gold);text-align:left;direction:ltr}
+
+/* indicators strip + news */
+.ind-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.news-list{display:flex;flex-direction:column;gap:9px;max-height:330px;overflow-y:auto}
+.news-item{display:flex;gap:10px;align-items:flex-start;background:var(--bg2);
+  border:1px solid var(--line);border-radius:10px;padding:10px 13px;transition:.2s}
+.news-item:hover{border-color:var(--line2)}
+.news-item .nd{flex:none;margin-top:6px;width:8px;height:8px;border-radius:50%}
+.nd.pos{background:var(--green)}.nd.neg{background:var(--red)}.nd.neu{background:var(--muted)}
+.news-item .nt{font-size:12.5px;line-height:1.7;direction:ltr;text-align:left}
+.news-item .np{font-size:10.5px;color:var(--muted);margin-top:3px;direction:ltr;text-align:left}
+.sent-chip{font-size:10px;border-radius:5px;padding:1px 7px;font-weight:600}
+.sent-chip.pos{color:var(--green);background:rgba(34,197,94,.1)}
+.sent-chip.neg{color:var(--red);background:rgba(239,83,80,.1)}
+.sent-chip.neu{color:var(--muted);background:rgba(148,180,220,.08)}
+
+/* tooltip */
+#tip{position:fixed;z-index:99;pointer-events:none;background:rgba(7,17,32,.96);
+  border:1px solid var(--line2);border-radius:10px;padding:9px 12px;font-size:11.5px;
+  display:none;box-shadow:0 10px 30px rgba(0,0,0,.5);min-width:130px}
+#tip .t-h{font-family:var(--mono);color:var(--muted);font-size:10.5px;margin-bottom:5px;direction:ltr;text-align:left}
+#tip .t-r{display:flex;justify-content:space-between;gap:14px;padding:1.5px 0}
+#tip .t-r b{font-family:var(--mono);font-weight:500}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;z-index:100;background:rgba(3,8,17,.75);backdrop-filter:blur(6px);
+  display:none;place-items:center;padding:20px}
+.modal-bg.open{display:grid}
+.modal{width:min(520px,100%);background:var(--panel2);border:1px solid var(--line2);
+  border-radius:20px;padding:28px;animation:rise .35s ease both}
+.modal h3{font-size:18px;margin-bottom:4px}
+.modal .m-sub{color:var(--muted);font-size:12.5px;margin-bottom:20px}
+.q-block{margin-bottom:18px}
+.q-block .q{font-size:13.5px;font-weight:600;margin-bottom:9px}
+.q-opts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.q-opts button{background:var(--bg2);border:1px solid var(--line);border-radius:10px;
+  padding:10px 8px;font-size:12px;color:var(--ink2);transition:.2s}
+.q-opts button.sel{border-color:var(--teal);color:var(--teal);background:rgba(45,212,191,.07);font-weight:600}
+.modal .m-actions{display:flex;gap:10px;margin-top:22px}
+.modal .m-actions .btn{flex:1;padding:12px 0}
+.modal .ghost{flex:none;background:none;border:1px solid var(--line2);color:var(--ink2);
+  border-radius:var(--radius);padding:0 18px}
+
+footer{margin-top:50px;padding:26px 0 0;border-top:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:12px;flex-wrap:wrap;gap:10px}
+footer .en{font-family:var(--mono);font-size:11px}
+.disclaimer{margin-top:26px;text-align:center;font-size:11.5px;color:var(--muted)}
+
+/* record mode: clean 16:9 stage */
+body.record .nav-links,body.record footer,body.record .chips{display:none!important}
+body.record header.top{position:static}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <a class="brand" href="index.html">
+      <div class="mark">م</div>
+      <div><b>مُرشِد <span style="color:var(--muted);font-weight:400">MSA</span></b>
+        <small>المحطة الكمّية</small></div>
+    </a>
+    <div class="tagline">خبيرك الكمّي المتوافق مع الشريعة</div>
+    <div class="grow"></div>
+    <nav class="nav-links">
+      <a href="dashboard.html">Terminal EN</a>
+      <a href="compare.html">مقارنة</a>
+    </nav>
+    <button class="profile-pill" id="profileBtn" title="ملف المخاطرة">
+      <span class="dot"></span><span id="profileLabel">متوازن</span>
+    </button>
+  </div>
+</header>
+
+<div class="shell">
+
+  <div class="command-zone">
+    <h1 class="hero-title">تحليل كمّي مؤسسي، بالعربية — <span class="gold">خبيرك الكمّي المتوافق مع الشريعة</span></h1>
+    <p class="hero-sub">تسع وحدات تحليلية + مونت كارلو + فحص شرعي، على بيانات حقيقية
+      <span class="en">RSI · MACD · Z-Score · FinBERT · GBM · AAOIFI</span></p>
+
+    <form class="cmdbar" id="searchForm">
+      <div class="searchbox">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#a9bcd4" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="tickerInput" placeholder="رمز السهم… مثل AAPL أو 2222.SR" maxlength="10" autocomplete="off">
+      </div>
+      <button class="btn" id="analyzeBtn" type="submit">حلّل</button>
+    </form>
+    <div class="chips" id="quickChips">
+      <button class="chip" data-t="AAPL">أبل <b>AAPL</b></button>
+      <button class="chip" data-t="MSFT">مايكروسوفت <b>MSFT</b></button>
+      <button class="chip" data-t="NVDA">إنفيديا <b>NVDA</b></button>
+      <button class="chip" data-t="TSLA">تسلا <b>TSLA</b></button>
+      <button class="chip" data-t="2222.SR">أرامكو <b>2222.SR</b></button>
+      <button class="chip" data-t="1120.SR">الراجحي <b>1120.SR</b></button>
+    </div>
+
+    <!-- ═══ Copilot ═══ -->
+    <div class="copilot">
+      <div class="copilot-head">
+        <span class="ai-dot"></span>
+        <b>اسأل مُرشِد</b>
+        <span>وكيل GPT-4o يستدعي أدوات التحليل الحيّة — لا يذكر رقمًا إلا من مصدر</span>
+      </div>
+      <div class="chat-log" id="chatLog"></div>
+      <div class="chat-suggest" id="chatSuggest">
+        <button>أشتري أرامكو؟</button>
+        <button>هل سهم أبل حلال؟</button>
+        <button>ما احتمال وصول NVDA إلى 220؟</button>
+        <button>كم أستثمر في تسلا وأين أضع وقف الخسارة؟</button>
+      </div>
+      <form class="chat-input" id="chatForm">
+        <input id="chatInput" placeholder="اكتب سؤالك بالعربية…" autocomplete="off">
+        <button type="submit" id="chatSend">إرسال</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══ Hero result strip ═══ -->
+  <section class="hero-strip" id="heroStrip">
+    <div class="hs-id">
+      <div class="tick num" id="hsTicker">—</div>
+      <h2 id="hsName">—</h2>
+      <div class="hs-price">
+        <span class="p num" id="hsPrice">—</span>
+        <span class="chg num" id="hsChange">—</span>
+      </div>
+      <div class="badges" id="hsBadges"></div>
+    </div>
+    <div class="hs-verdict" id="hsVerdict"></div>
+    <div class="hs-gauge">
+      <svg id="gaugeSvg" width="170" height="105" viewBox="0 0 170 105"></svg>
+      <div class="glabel">الدرجة المركّبة <span class="en num">0–100</span></div>
+    </div>
+  </section>
+
+  <!-- ═══ Panels ═══ -->
+  <main class="grid" id="panelGrid" style="display:none">
+
+    <section class="panel" id="pnl-explain">
+      <div class="p-head"><h3>لماذا هذه التوصية؟</h3><span class="en">SCORE ATTRIBUTION</span><div class="grow"></div></div>
+      <div class="p-body"></div>
+    </section>
+
+    <section class="panel" id="pnl-shariah">
+      <div class="p-head"><h3>الفحص الشرعي</h3><span class="en">AAOIFI SCREEN</span><div class="grow"></div>
+        <span class="beta-tag">تجريبي / قيد المعايرة</span></div>
+      <div class="p-body"></div>
+    </section>
+
+    <section class="panel" id="pnl-position">
+      <div class="p-head"><h3>حجم المركز الموصى به</h3><span class="en">POSITION SIZING</span><div class="grow"></div></div>
+      <div class="p-body"></div>
+    </section>
+
+    <section class="panel" id="pnl-mc">
+      <div class="p-head"><h3>محاكاة مونت كارلو</h3><span class="en">10,000 GBM PATHS</span><div class="grow"></div></div>
+      <div class="p-body"></div>
+    </section>
+
+    <section class="panel wide" id="pnl-backtest">
+      <div class="p-head"><h3>الاختبار التاريخي والمعايرة</h3><span class="en">WALK-FORWARD · 2Y</span><div class="grow"></div>
+        <span class="beta-tag">الركيزة الفنية — التحقق الكامل: هدف</span></div>
+      <div class="p-body"></div>
+    </section>
+
+    <section class="panel wide" id="pnl-optimize">
+      <div class="p-head"><h3>المحفظة الحلال المُثلى</h3><span class="en">MARKOWITZ · NO-SHORT</span><div class="grow"></div>
+        <span class="beta-tag">تجريبي — سلة توضيحية</span></div>
+      <div class="p-body"></div>
+    </section>
+
+    <section class="panel" id="pnl-indicators">
+      <div class="p-head"><h3>الوحدات التحليلية</h3><span class="en">9 MODULES · LIVE</span><div class="grow"></div></div>
+      <div class="p-body"></div>
+    </section>
+
+    <section class="panel" id="pnl-news">
+      <div class="p-head"><h3>الأخبار ومشاعر السوق</h3><span class="en">FinBERT NLP</span><div class="grow"></div></div>
+      <div class="p-body"></div>
+    </section>
+
+  </main>
+
+  <p class="disclaimer">مُرشِد أداة تحليل كمّي — ليست توصية استثمارية. البيانات من Yahoo Finance وقد تتأخر.</p>
+
+  <footer>
+    <div>مُرشِد MSA — عمل فريق عبدالرحمن وخالد · نهائيات عماد ٢٠٢٦</div>
+    <div class="en">FastAPI · GPT-4o · FinBERT · NumPy · Hugging Face Spaces</div>
+  </footer>
+</div>
+
+<div id="tip"></div>
+
+<!-- ═══ Risk profile modal ═══ -->
+<div class="modal-bg" id="riskModal">
+  <div class="modal">
+    <h3>ملف المخاطرة</h3>
+    <p class="m-sub">ثلاثة أسئلة تضبط حجم المركز وعتبات الإشارة والمحفظة المثلى — تُحفظ محليًا.</p>
+    <div class="q-block">
+      <div class="q">١ — ما أفقك الاستثماري؟</div>
+      <div class="q-opts" data-q="0">
+        <button data-v="0">أقل من سنة</button><button data-v="1">١–٣ سنوات</button><button data-v="2">أكثر من ٣ سنوات</button>
+      </div>
+    </div>
+    <div class="q-block">
+      <div class="q">٢ — لو خسرت محفظتك 15% في شهر؟</div>
+      <div class="q-opts" data-q="1">
+        <button data-v="0">أبيع فورًا</button><button data-v="1">أنتظر وأراقب</button><button data-v="2">أشتري المزيد</button>
+      </div>
+    </div>
+    <div class="q-block">
+      <div class="q">٣ — ما هدفك الأساسي؟</div>
+      <div class="q-opts" data-q="2">
+        <button data-v="0">حفظ رأس المال</button><button data-v="1">دخل ونمو متوازن</button><button data-v="2">نمو قوي</button>
+      </div>
+    </div>
+    <div class="m-actions">
+      <button class="btn" id="riskSave" disabled>احفظ الملف</button>
+      <button class="ghost" id="riskCancel">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ═══════════════ Config & state ═══════════════ */
+const qs = new URLSearchParams(location.search);
+const API = qs.get("api") || "https://vd2mi-msa.hf.space";
+if (qs.get("record") === "1") document.body.classList.add("record");
+
+const PROFILE_AR = { conservative: "محافظ", balanced: "متوازن", aggressive: "جريء" };
+// signal thresholds shift with the risk profile (display calibration)
+const PROFILE_BUY_THRESHOLD = { conservative: 75, balanced: 70, aggressive: 65 };
+
+const state = {
+  ticker: null,
+  analysis: null,
+  shariah: null,
+  profile: localStorage.getItem("msa_profile") || "balanced",
+  mcHorizon: 63,
+  mcTarget: null,
+  chatHistory: [],
+  chatBusy: false,
+};
+document.getElementById("profileLabel").textContent = PROFILE_AR[state.profile];
+
+const AR = { // English signal → Arabic
+  "Buy": "شراء", "Strong Buy": "شراء قوي", "Sell": "بيع", "Strong Sell": "بيع قوي",
+  "Hold": "احتفاظ", "Watch": "مراقبة", "Neutral": "محايد",
+  "Oversold": "تشبّع بيعي", "Overbought": "تشبّع شرائي",
+  "Bullish": "صاعد", "Bearish": "هابط",
+  "Golden Cross": "تقاطع ذهبي", "Death Cross": "تقاطع هابط",
+  "Rising": "صاعد", "Falling": "هابط", "Flat": "مستقر",
+  "Accumulation": "تجميع مؤسسي", "Distribution": "تصريف", "Confirmation": "تأكيد", "None": "—",
+  "Upper Band": "النطاق العلوي", "Mid Band": "النطاق الأوسط", "Lower Band": "النطاق السفلي",
+  "Extreme Fear": "خوف شديد", "Fear": "خوف", "Greed": "طمع", "Extreme Greed": "طمع شديد",
+  "No Data": "لا بيانات",
+};
+const ar = (s) => AR[s] || s || "—";
+const fmt = (n, d = 2) => n == null || isNaN(n) ? "—" : Number(n).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+const cur = (t) => t && t.endsWith(".SR") ? "ر.س" : "$";
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+async function getJSON(url) {
+  const r = await fetch(url);
+  if (!r.ok) {
+    let msg = `HTTP ${r.status}`;
+    try { msg = (await r.json()).detail || msg; } catch {}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+/* ═══════════════ Panel helpers ═══════════════ */
+const body = (id) => document.querySelector(`#${id} .p-body`);
+function skeleton(id, h = 150) {
+  body(id).innerHTML = `<div class="skel" style="height:${h}px"></div>`;
+}
+function panelError(id, msg, retryFn) {
+  body(id).innerHTML = `<div class="panel-err"><div>تعذّر جلب البيانات — ${esc(msg)}</div>
+    <button>إعادة المحاولة</button></div>`;
+  body(id).querySelector("button").onclick = retryFn;
+}
+
+/* ═══════════════ Canvas plumbing (crisp + tooltip) ═══════════════ */
+const tip = document.getElementById("tip");
+function showTip(x, y, html) {
+  tip.innerHTML = html; tip.style.display = "block";
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.min(x + 14, innerWidth - w - 10) + "px";
+  tip.style.top = Math.max(8, y - h - 12) + "px";
+}
+function hideTip() { tip.style.display = "none"; }
+
+function makeCanvas(container, height) {
+  const c = document.createElement("canvas");
+  c.className = "viz"; c.style.height = height + "px";
+  container.appendChild(c);
+  const ctx = c.getContext("2d");
+  function fit() {
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    c.width = c.clientWidth * dpr; c.height = height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  fit();
+  return { c, ctx, fit, W: () => c.clientWidth, H: () => height };
+}
+const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+
+/* ═══════════════ Composite gauge (SVG semicircle) ═══════════════ */
+function drawGauge(score) {
+  const svg = document.getElementById("gaugeSvg");
+  const R = 66, CX = 85, CY = 92, circ = Math.PI * R;
+  const col = score >= 70 ? "var(--green)" : score >= 55 ? "var(--gold)" : score >= 40 ? "var(--amber)" : "var(--red)";
+  svg.innerHTML = `
+    <path d="M ${CX - R} ${CY} A ${R} ${R} 0 0 1 ${CX + R} ${CY}" fill="none" stroke="#12233f" stroke-width="13" stroke-linecap="round"/>
+    <path id="gArc" d="M ${CX - R} ${CY} A ${R} ${R} 0 0 1 ${CX + R} ${CY}" fill="none" stroke="${col}" stroke-width="13"
+      stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${circ}"
+      style="transition:stroke-dashoffset 1.1s cubic-bezier(.22,.8,.28,1)"/>
+    <text x="${CX}" y="${CY - 8}" text-anchor="middle" fill="var(--gold)" font-family="IBM Plex Mono" font-size="30" font-weight="600">${fmt(score, 1)}</text>`;
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      svg.querySelector("#gArc").style.strokeDashoffset = circ * (1 - Math.max(0, Math.min(100, score)) / 100);
+    }));
+}
+
+/* ═══════════════ 1. Analyze + hero + explainability + indicators + news ═══════════════ */
+async function runAnalysis(ticker) {
+  ticker = ticker.toUpperCase().trim();
+  if (!ticker) return;
+  state.ticker = ticker;
+  state.mcTarget = null;
+  state.shariah = null;
+  document.getElementById("tickerInput").value = ticker;
+  const btn = document.getElementById("analyzeBtn");
+  btn.disabled = true; btn.textContent = "يحلّل…";
+
+  document.getElementById("panelGrid").style.display = "grid";
+  document.getElementById("heroStrip").classList.add("show");
+  ["pnl-explain", "pnl-indicators", "pnl-news"].forEach(id => skeleton(id, 220));
+  skeleton("pnl-shariah", 220); skeleton("pnl-position", 220);
+  skeleton("pnl-mc", 320); skeleton("pnl-backtest", 300); skeleton("pnl-optimize", 300);
+  document.getElementById("hsTicker").textContent = ticker;
+  document.getElementById("hsName").innerHTML = `<span class="skel" style="display:inline-block;width:160px;height:20px"></span>`;
+
+  // independent panels fire in parallel
+  loadShariah(ticker);
+  loadBacktest(ticker);
+  loadOptimizer();
+
+  try {
+    const a = await getJSON(`${API}/analyze?ticker=${encodeURIComponent(ticker)}`);
+    state.analysis = a;
+    renderHero(a);
+    renderExplain(a);
+    renderIndicators(a);
+    renderNews(a);
+    loadPosition(ticker);   // needs composite score
+    loadMonteCarlo(ticker); // uses analyst target as default
+  } catch (e) {
+    ["pnl-explain", "pnl-indicators", "pnl-news", "pnl-position", "pnl-mc"].forEach(id =>
+      panelError(id, e.message, () => runAnalysis(ticker)));
+    document.getElementById("hsName").textContent = "تعذّر التحليل";
+    document.getElementById("hsPrice").textContent = "—";
+    document.getElementById("hsChange").textContent = "";
+    document.getElementById("hsVerdict").innerHTML = `<div class="vt" style="color:var(--red)">${esc(e.message)}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = "حلّل";
+    const u = new URL(location); u.searchParams.set("ticker", ticker); history.replaceState(null, "", u);
+  }
+}
+
+function signalClass(sig) {
+  if (!sig) return "sig-watch";
+  const s = sig.toLowerCase();
+  if (s.includes("buy")) return "sig-buy";
+  if (s.includes("sell")) return "sig-sell";
+  if (s.includes("hold")) return "sig-hold";
+  return "sig-watch";
+}
+
+function renderHero(a) {
+  const pt = a.price_target || {};
+  const iw = a.inference_weights || {};
+  const c = cur(a.ticker);
+  document.getElementById("hsName").textContent = a.ticker;
+  document.getElementById("hsPrice").textContent = pt.current != null ? `${fmt(pt.current)} ${c}` : "—";
+  const chg = document.getElementById("hsChange");
+  if (pt.daily_change_pct != null) {
+    const up = pt.daily_change_pct >= 0;
+    chg.textContent = `${up ? "▲" : "▼"} ${fmt(Math.abs(pt.daily_change ?? 0))} (${fmt(Math.abs(pt.daily_change_pct))}%)`;
+    chg.className = "chg num " + (up ? "up" : "down");
+  } else { chg.textContent = ""; }
+
+  // signal badge — threshold moves with risk profile
+  const score = iw.composite_score ?? 50;
+  const thr = PROFILE_BUY_THRESHOLD[state.profile];
+  let sig = iw.composite_signal || "Watch";
+  if (sig === "Buy" && score < thr) sig = "Hold"; // stricter profile demands more
+  const badges = document.getElementById("hsBadges");
+  badges.innerHTML = `
+    <span class="badge ${signalClass(sig)}">الإشارة: ${ar(sig)} <span class="num">(${fmt(score, 1)})</span></span>
+    <span class="badge sig-watch">عتبة الشراء لملفك: <span class="num">≥${thr}</span></span>
+    <span class="badge sig-watch" id="hsShariahBadge">الفحص الشرعي…</span>`;
+  if (state.shariah) updateShariahBadge(state.shariah);
+  drawGauge(score);
+
+  const g = a.gpt_analysis;
+  document.getElementById("hsVerdict").innerHTML = g ? `
+    <div class="vh">حكم GPT-4o — نص المحلل (EN)</div>
+    <div class="vt" dir="ltr" style="text-align:left">${esc(g.actionable_insight)}</div>
+    <div class="vc">الثقة: <b>${g.confidence_score}%</b> · مصادر: yfinance · FinBERT · CNN F&G</div>`
+    : `<div class="vh">حكم GPT-4o</div><div class="vt" style="color:var(--muted)">غير متوفر لهذا الطلب</div>`;
+}
+
+function renderExplain(a) {
+  const iw = a.inference_weights;
+  const el = body("pnl-explain");
+  if (!iw) { el.innerHTML = `<div class="panel-err">لا تتوفر أوزان الاستدلال</div>`; return; }
+  const rows = [
+    { nm: "الركيزة الفنية", en: "RSI · MACD · SG-Slope · Z", sc: iw.technical_score, w: .35 },
+    { nm: "مشاعر السوق", en: "F&G (60%) + FinBERT (40%)", sc: iw.sentiment_score, w: .25 },
+    { nm: "إجماع المحللين", en: "ANALYST CONSENSUS", sc: iw.analyst_score, w: .20 },
+    { nm: "تدفق السيولة", en: "OBV + VOLUME", sc: iw.volume_score, w: .20 },
+  ];
+  el.innerHTML = rows.map((r, i) => {
+    const contrib = r.sc * r.w;
+    return `<div class="xp-row">
+      <div class="xp-top">
+        <span class="nm"><b>${r.nm}</b> <span class="en" style="font-family:var(--mono);font-size:10px;color:var(--muted)">${r.en} · ${Math.round(r.w * 100)}%</span></span>
+        <span class="pts num">+${fmt(contrib, 1)} نقطة</span>
+      </div>
+      <div class="xp-track"><span class="mid"></span>
+        <div class="xp-fill ${r.sc < 45 ? "neg" : ""}" data-w="${r.sc}"></div>
+      </div>
+    </div>`;
+  }).join("") + `
+    <div class="xp-formula">composite = <b>${fmt(iw.technical_score,1)}</b>×0.35 + <b>${fmt(iw.sentiment_score,1)}</b>×0.25 + <b>${fmt(iw.analyst_score,1)}</b>×0.20 + <b>${fmt(iw.volume_score,1)}</b>×0.20 = <b>${fmt(iw.composite_score,1)}</b> / 100</div>`;
+  requestAnimationFrame(() => requestAnimationFrame(() =>
+    el.querySelectorAll(".xp-fill").forEach(f => f.style.width = f.dataset.w + "%")));
+}
+
+function renderIndicators(a) {
+  const t = a.technicals || {}, z = a.zscore_analysis || {}, b = a.bollinger_bands || {},
+    o = a.obv_analysis || {}, v = a.volume_profile || {}, m = a.moving_averages || {},
+    fg = a.fear_greed || {}, an = a.analyst_ratings || {}, d = a.denoised_trend || {};
+  const tiles = [
+    ["RSI-14", fmt(t.rsi_14, 1), ar(t.rsi_signal)],
+    ["MACD", fmt(t.macd_histogram, 3), ar(t.macd_trend)],
+    ["Z-Score 20D", fmt(z.zscore, 2) + "σ", `ارتداد ${fmt(z.reversal_probability, 0)}%`],
+    ["SMA 50/200", ar(m.signal), m.sma_50 != null ? `${fmt(m.sma_50, 0)} / ${fmt(m.sma_200, 0)}` : ""],
+    ["Bollinger", fmt(b.bandwidth, 1) + "%", ar(b.position) + (b.squeeze ? " · انضغاط" : "")],
+    ["OBV", ar(o.obv_trend), ar(o.divergence)],
+    ["السيولة ×", fmt(v.volume_ratio, 2), v.spike ? "قفزة حجم" : "طبيعي"],
+    ["الخوف والطمع", fg.value ?? "—", ar(fg.label)],
+    ["المحللون", an.total ? `${an.total}` : "—", ar(an.recommendation)],
+    ["ميل SG", fmt(d.slope, 3) + "%/يوم", ar(d.slope_direction) + (d.momentum_exhaustion ? " · إنهاك زخم" : "")],
+  ];
+  body("pnl-indicators").innerHTML = `<div class="ind-tiles">` + tiles.map(([l, v2, s]) =>
+    `<div class="tile"><div class="tl">${l}</div><div class="tv num">${v2 || "—"}</div><div class="ts">${s || ""}</div></div>`
+  ).join("") + `</div>`;
+}
+
+function renderNews(a) {
+  const el = body("pnl-news");
+  const ns = a.news_sentiment;
+  const head = ns ? `<div class="ctrl-row" style="margin-bottom:12px">
+      <span>الحصيلة: <b style="color:var(--ink)">${ar(ns.label)}</b></span>
+      <span class="sent-chip pos num">+${ns.positive}</span>
+      <span class="sent-chip neg num">−${ns.negative}</span>
+      <span class="sent-chip neu num">~${ns.neutral}</span>
+      <span style="color:var(--muted);font-size:11px">تصنيف ProsusAI/FinBERT لكل عنوان</span>
+    </div>` : "";
+  if (!a.news || !a.news.length) {
+    el.innerHTML = head + `<div class="panel-err" style="min-height:80px">لا أخبار متاحة لهذا الرمز حاليًا</div>`;
+    return;
+  }
+  el.innerHTML = head + `<div class="news-list">` + a.news.map(n => {
+    const cls = n.sentiment === "positive" ? "pos" : n.sentiment === "negative" ? "neg" : "neu";
+    const inner = `<span class="nd ${cls}"></span><div>
+        <div class="nt">${esc(n.title)}</div>
+        <div class="np">${esc(n.publisher || "")} ${n.sentiment ? `· <span class="sent-chip ${cls}">${n.sentiment} ${n.sentiment_score ? fmt(n.sentiment_score * 100, 0) + "%" : ""}</span>` : ""}</div>
+      </div>`;
+    return n.link
+      ? `<a class="news-item" href="${esc(n.link)}" target="_blank" rel="noopener">${inner}</a>`
+      : `<div class="news-item">${inner}</div>`;
+  }).join("") + `</div>`;
+}
+
+/* ═══════════════ 2. Shariah panel ═══════════════ */
+async function loadShariah(ticker) {
+  skeleton("pnl-shariah", 220);
+  try {
+    const s = await getJSON(`${API}/shariah?ticker=${encodeURIComponent(ticker)}`);
+    renderShariah(s);
+  } catch (e) { panelError("pnl-shariah", e.message, () => loadShariah(ticker)); }
+}
+function updateShariahBadge(s) {
+  const kind = s.status === "compliant" ? "halal" : s.status === "non_compliant" ? "haram" : "mixed";
+  const icon = kind === "halal" ? "✓" : kind === "haram" ? "✕" : "◐";
+  const hb = document.getElementById("hsShariahBadge");
+  if (hb) hb.outerHTML = `<span class="badge ${kind}" id="hsShariahBadge">${icon} ${esc(s.status_ar)} <span class="beta-mini">تجريبي</span></span>`;
+}
+function renderShariah(s) {
+  state.shariah = s;
+  const kind = s.status === "compliant" ? "halal" : s.status === "non_compliant" ? "haram" : "mixed";
+  const icon = kind === "halal" ? "✓" : kind === "haram" ? "✕" : "◐";
+  updateShariahBadge(s);
+
+  const ratio = (nm, en, val, pass) => {
+    const na = val == null;
+    const w = na ? 0 : Math.min(100, val / 60 * 100); // scale: 60% full width, threshold at 50%
+    return `<div class="ratio-row">
+      <div class="ratio-top"><span class="nm">${nm} <span class="en" style="font-family:var(--mono);font-size:9.5px;color:var(--muted)">${en}</span></span>
+        <span class="vl num ${na ? "na" : pass ? "ok" : "bad"}">${na ? "غير متوفر" : fmt(val, 1) + "%"}</span></div>
+      <div class="ratio-track"><div class="ratio-fill ${pass === false ? "bad" : "ok"}" data-w="${w}"></div>
+        <span class="ratio-thr" style="right:50%"></span></div>
+    </div>`;
+  };
+  body("pnl-shariah").innerHTML = `
+    <div class="sh-status">
+      <div class="sh-icon ${kind}">${icon}</div>
+      <div><div class="st ${kind}">${esc(s.status_ar)}</div>
+        <div class="sub">${esc(s.company || s.ticker)} · ${esc(s.industry || s.sector || "قطاع غير معروف")}</div></div>
+    </div>
+    ${s.business_flags.length ? `<div class="ctrl-row" style="color:var(--red);font-size:12px">⚠ نشاط غير متوافق: ${s.business_flags.map(esc).join("، ")}</div>` : ""}
+    ${ratio("الدين بفائدة / القيمة السوقية", "DEBT / MCAP", s.debt_ratio_pct, s.debt_pass)}
+    ${ratio("النقد وما في حكمه / القيمة السوقية", "CASH / MCAP", s.cash_ratio_pct, s.cash_pass)}
+    ${ratio("الذمم المدينة / القيمة السوقية", "RECEIVABLES / MCAP", s.receivables_ratio_pct, s.receivables_pass)}
+    <div class="tiles" style="margin-top:14px">
+      <div class="tile"><div class="tl">الدخل غير المتوافق</div><div class="tv" style="font-size:13px;color:var(--amber)">قيد الربط</div><div class="ts">يتطلب تغذية بيانات قطاعية</div></div>
+      <div class="tile"><div class="tl">نسبة التطهير</div><div class="tv" style="font-size:13px;color:var(--amber)">قيد الربط</div><div class="ts">تُحتسب من الدخل غير المتوافق</div></div>
+    </div>
+    <div class="foot-note">${esc(s.notes_ar)} · منهجية AAOIFI (حد ${fmt(s.threshold_pct, 0)}%) · المصدر: ${esc(s.data_source)}</div>`;
+  requestAnimationFrame(() => requestAnimationFrame(() =>
+    body("pnl-shariah").querySelectorAll(".ratio-fill").forEach(f => f.style.width = f.dataset.w + "%")));
+}
+
+/* ═══════════════ 3. Position sizing ═══════════════ */
+async function loadPosition(ticker) {
+  skeleton("pnl-position", 220);
+  try {
+    const score = state.analysis?.inference_weights?.composite_score;
+    const capital = Number(localStorage.getItem("msa_capital")) || 100000;
+    const u = `${API}/position-size?ticker=${encodeURIComponent(ticker)}&profile=${state.profile}` +
+      (score != null ? `&score=${score}` : "") + `&capital=${capital}`;
+    const p = await getJSON(u);
+    renderPosition(p, capital);
+  } catch (e) { panelError("pnl-position", e.message, () => loadPosition(ticker)); }
+}
+function renderPosition(p, capital) {
+  const c = cur(p.ticker);
+  body("pnl-position").innerHTML = `
+    <div class="pos-hero">
+      <div>
+        <div class="pos-big num">${fmt(p.recommended_pct, 1)}<small>%</small></div>
+        <div class="pos-cap">من رأس المال · ملف <b style="color:var(--teal)">${esc(p.profile_ar)}</b> · سقف ${fmt(p.cap_pct, 0)}%</div>
+      </div>
+      <div class="tiles" style="flex:1;min-width:230px">
+        <div class="tile"><div class="tl">وقف الخسارة <span class="en">2×ATR</span></div>
+          <div class="tv num" style="color:var(--red)">${fmt(p.stop_price)} ${c}</div><div class="ts num">−${fmt(p.stop_pct, 1)}%</div></div>
+        <div class="tile"><div class="tl">التقلب السنوي σ</div>
+          <div class="tv num">${fmt(p.sigma_annual * 100, 1)}%</div><div class="ts">محقق من عوائد سنة</div></div>
+        ${p.shares != null ? `<div class="tile gold"><div class="tl">على رأس مال <span class="num">${fmt(capital, 0)}</span></div>
+          <div class="tv num">${fmt(p.shares, 0)} سهم</div><div class="ts num">≈ ${fmt(p.position_value, 0)} ${c}</div></div>` : ""}
+      </div>
+    </div>
+    <button class="formula-toggle" id="posFormulaBtn">عرض المعادلة ▾</button>
+    <div class="formula-box" id="posFormulaBox">${p.formulas.map(f => `<div>${esc(f)}</div>`).join("")}</div>
+    <div class="foot-note">${esc(p.notes_ar)}</div>`;
+  document.getElementById("posFormulaBtn").onclick = () => {
+    const bx = document.getElementById("posFormulaBox");
+    bx.classList.toggle("open");
+    document.getElementById("posFormulaBtn").textContent = bx.classList.contains("open") ? "إخفاء المعادلة ▴" : "عرض المعادلة ▾";
+  };
+}
+
+/* ═══════════════ 4. Monte Carlo fan chart ═══════════════ */
+let mcAnim = null;
+async function loadMonteCarlo(ticker) {
+  skeleton("pnl-mc", 320);
+  try {
+    const spot = state.analysis?.price_target?.current;
+    if (state.mcTarget == null) {
+      const analystTarget = state.analysis?.price_target?.target_mean;
+      state.mcTarget = analystTarget || (spot ? +(spot * 1.10).toFixed(2) : null);
+    }
+    const u = `${API}/montecarlo?ticker=${encodeURIComponent(ticker)}&horizon_days=${state.mcHorizon}` +
+      (state.mcTarget ? `&target=${state.mcTarget}` : "");
+    const mc = await getJSON(u);
+    renderMonteCarlo(mc);
+  } catch (e) { panelError("pnl-mc", e.message, () => loadMonteCarlo(ticker)); }
+}
+
+function renderMonteCarlo(mc) {
+  const el = body("pnl-mc");
+  const c = cur(mc.ticker);
+  el.innerHTML = `
+    <div class="ctrl-row">
+      <span>الأفق:</span>
+      <div class="seg" id="mcSeg">
+        ${[21, 63, 126, 252].map(d => `<button data-d="${d}" class="${d === mc.horizon_days ? "on" : ""}">${d === 21 ? "شهر" : d === 63 ? "٣ أشهر" : d === 126 ? "٦ أشهر" : "سنة"}</button>`).join("")}
+      </div>
+      <span>الهدف:</span>
+      <input class="mini-input" id="mcTargetIn" type="number" step="0.01" value="${mc.target}">
+      <span style="color:var(--muted);font-size:11px">μ=${fmt(mc.mu_annual * 100, 1)}% · σ=${fmt(mc.sigma_annual * 100, 1)}% سنويًا · seed ثابت يوميًا</span>
+    </div>
+    <div id="mcCanvasWrap"></div>
+    <div class="tiles" style="margin-top:14px">
+      <div class="tile gold"><div class="tl">احتمال بلوغ الهدف <span class="num">${fmt(mc.target)}</span></div>
+        <div class="tv num">${fmt(mc.prob_touch_target, 1)}%</div><div class="ts num">إغلاق فوقه: ${fmt(mc.prob_end_above_target, 1)}%</div></div>
+      <div class="tile"><div class="tl">VaR 95%</div><div class="tv num" style="color:var(--red)">−${fmt(mc.var_95_pct, 1)}%</div>
+        <div class="ts num">${fmt(mc.var_95_price)} ${c}</div></div>
+      <div class="tile"><div class="tl">CVaR 95%</div><div class="tv num" style="color:var(--red)">−${fmt(mc.cvar_95_pct, 1)}%</div>
+        <div class="ts">متوسط أسوأ 5%</div></div>
+      <div class="tile teal"><div class="tl">السعر المتوقع</div><div class="tv num">${fmt(mc.expected_price)} ${c}</div>
+        <div class="ts num">من ${mc.n_paths.toLocaleString("en-US")} مسار</div></div>
+    </div>
+    <div class="foot-note">محاكاة GBM حقيقية — المعادلة: ${esc(mc.method)}. نتائج المحاكاة توزيع احتمالي لا تنبؤ مؤكد.</div>`;
+
+  el.querySelectorAll("#mcSeg button").forEach(b => b.onclick = () => {
+    state.mcHorizon = +b.dataset.d; loadMonteCarlo(mc.ticker);
+  });
+  const ti = el.querySelector("#mcTargetIn");
+  ti.onchange = () => { const v = parseFloat(ti.value); if (v > 0) { state.mcTarget = v; loadMonteCarlo(mc.ticker); } };
+
+  drawFanChart(el.querySelector("#mcCanvasWrap"), mc);
+}
+
+function drawFanChart(wrap, mc) {
+  if (mcAnim) cancelAnimationFrame(mcAnim);
+  const { c, ctx, W, H } = makeCanvas(wrap, 260);
+  const n = mc.p50.length;
+  const lo = Math.min(...mc.p05, mc.spot, mc.target) * 0.985;
+  const hi = Math.max(...mc.p95, mc.spot, mc.target) * 1.015;
+  const padL = 8, padR = 58, padT = 12, padB = 24; // y labels on the right (RTL)
+  const X = (i) => padL + (W() - padL - padR) * (i / (n - 1));
+  const Y = (v) => padT + (H() - padT - padB) * (1 - (v - lo) / (hi - lo));
+
+  const t0 = performance.now(), DUR = 1300;
+  function frame(now) {
+    const t = Math.min(1, (now - t0) / DUR), e = easeOut(t);
+    const upto = Math.max(2, Math.floor(n * e));
+    ctx.clearRect(0, 0, W(), H());
+
+    // grid + right-side y labels
+    ctx.font = "10px IBM Plex Mono"; ctx.fillStyle = "#64799a"; ctx.textAlign = "left";
+    for (let g = 0; g <= 4; g++) {
+      const v = lo + (hi - lo) * g / 4, y = Y(v);
+      ctx.strokeStyle = "rgba(148,180,220,.07)"; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W() - padR, y); ctx.stroke();
+      ctx.fillText(fmt(v, v > 500 ? 0 : 1), W() - padR + 8, y + 3);
+    }
+    // x labels (trading days)
+    ctx.textAlign = "center";
+    [0, .25, .5, .75, 1].forEach(f => {
+      const i = Math.round((n - 1) * f);
+      const lx = Math.max(padL + 18, Math.min(W() - padR - 14, X(i)));
+      ctx.fillText(i === 0 ? "اليوم" : "+" + i, lx, H() - 6);
+    });
+
+    const band = (a, b, alpha) => {
+      ctx.beginPath();
+      for (let i = 0; i < upto; i++) (i ? ctx.lineTo : ctx.moveTo).call(ctx, X(i), Y(a[i]));
+      for (let i = upto - 1; i >= 0; i--) ctx.lineTo(X(i), Y(b[i]));
+      ctx.closePath();
+      ctx.fillStyle = `rgba(45,212,191,${alpha})`; ctx.fill();
+    };
+    band(mc.p05, mc.p95, 0.09);
+    band(mc.p25, mc.p75, 0.16);
+
+    // faint real sample paths
+    ctx.lineWidth = 1; ctx.strokeStyle = "rgba(45,212,191,.10)";
+    for (const p of mc.sample_paths) {
+      ctx.beginPath();
+      for (let i = 0; i < upto; i++) (i ? ctx.lineTo : ctx.moveTo).call(ctx, X(i), Y(p[i]));
+      ctx.stroke();
+    }
+
+    // target line
+    ctx.setLineDash([5, 5]); ctx.strokeStyle = "rgba(232,194,104,.55)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(padL, Y(mc.target)); ctx.lineTo(W() - padR, Y(mc.target)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#e8c268"; ctx.textAlign = "left";
+    ctx.fillText("الهدف", W() - padR + 8, Y(mc.target) - 6);
+
+    // bold animated median
+    ctx.beginPath();
+    for (let i = 0; i < upto; i++) (i ? ctx.lineTo : ctx.moveTo).call(ctx, X(i), Y(mc.p50[i]));
+    ctx.lineWidth = 2.5; ctx.strokeStyle = "#e8c268";
+    ctx.shadowColor = "rgba(232,194,104,.5)"; ctx.shadowBlur = 8;
+    ctx.stroke(); ctx.shadowBlur = 0;
+
+    // glowing head dot
+    const hx = X(upto - 1), hy = Y(mc.p50[upto - 1]);
+    ctx.beginPath(); ctx.arc(hx, hy, 3.5, 0, 7); ctx.fillStyle = "#e8c268"; ctx.fill();
+
+    if (t < 1) mcAnim = requestAnimationFrame(frame);
+  }
+  mcAnim = requestAnimationFrame(frame);
+
+  c.onmousemove = (ev) => {
+    const r = c.getBoundingClientRect();
+    const i = Math.round((ev.clientX - r.left - padL) / (W() - padL - padR) * (n - 1));
+    if (i < 0 || i >= n) return hideTip();
+    showTip(ev.clientX, ev.clientY, `
+      <div class="t-h">DAY +${i}</div>
+      <div class="t-r"><span>P95</span><b>${fmt(mc.p95[i])}</b></div>
+      <div class="t-r"><span>الوسيط P50</span><b style="color:var(--gold)">${fmt(mc.p50[i])}</b></div>
+      <div class="t-r"><span>P05</span><b>${fmt(mc.p05[i])}</b></div>`);
+  };
+  c.onmouseleave = hideTip;
+}
+
+/* ═══════════════ 5. Backtest ═══════════════ */
+async function loadBacktest(ticker) {
+  skeleton("pnl-backtest", 300);
+  try {
+    const bt = await getJSON(`${API}/backtest?ticker=${encodeURIComponent(ticker)}`);
+    renderBacktest(bt);
+  } catch (e) { panelError("pnl-backtest", e.message, () => loadBacktest(ticker)); }
+}
+function renderBacktest(bt) {
+  const el = body("pnl-backtest");
+  const tile = (l, v, s, cls = "") => `<div class="tile ${cls}"><div class="tl">${l}</div><div class="tv num">${v}</div><div class="ts">${s || ""}</div></div>`;
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px" class="bt-grid">
+      <div><div id="btCanvasWrap"></div>
+        <div class="legend">
+          <span><i style="background:#0d9488"></i>الاستراتيجية (فني ≥ ${fmt(bt.signal_threshold, 0)})</span>
+          <span><i style="background:#8b5cf6"></i>شراء واحتفاظ</span>
+        </div></div>
+      <div class="tiles" style="grid-template-columns:repeat(2,1fr);align-content:start">
+        ${tile("نسبة الإصابة <span class='en'>HIT RATE</span>", bt.hit_rate_pct != null ? fmt(bt.hit_rate_pct, 1) + "%" : "—", `${bt.n_signals} إشارة · اتجاه ٥ أيام`, "teal")}
+        ${tile("Brier Score", bt.brier_score != null ? fmt(bt.brier_score, 3) : "—", "أقل = معايرة أفضل (0–1)")}
+        ${tile("Sharpe الاستراتيجية", bt.sharpe_strategy ?? "—", `مقابل ${bt.sharpe_buyhold ?? "—"} للاحتفاظ`)}
+        ${tile("أقصى تراجع", bt.max_dd_strategy_pct != null ? fmt(bt.max_dd_strategy_pct, 1) + "%" : "—", `الاحتفاظ: ${fmt(bt.max_dd_buyhold_pct, 1)}%`)}
+        ${tile("العائد الكلي", bt.total_return_strategy_pct != null ? fmt(bt.total_return_strategy_pct, 1) + "%" : "—", `الاحتفاظ: ${fmt(bt.total_return_buyhold_pct, 1)}%`, "gold")}
+        ${tile("التواجد في السوق", fmt(bt.exposure_pct, 0) + "%", "من أيام التداول")}
+      </div>
+    </div>
+    <div class="foot-note">⚠ ${esc(bt.notes_ar)} — مقاييس الإشارة المركّبة الكاملة تُعرض حال اكتمال الأرشفة وتُعامل حتى ذلك الحين «هدف تحقق»، لا نتيجة محققة.</div>`;
+  if (innerWidth < 900) el.querySelector(".bt-grid").style.gridTemplateColumns = "1fr";
+  drawEquityChart(el.querySelector("#btCanvasWrap"), bt.equity_curve);
+}
+
+function drawEquityChart(wrap, curve) {
+  const { c, ctx, W, H } = makeCanvas(wrap, 230);
+  const n = curve.length;
+  if (!n) return;
+  const all = curve.flatMap(p => [p.strategy, p.buyhold]);
+  const lo = Math.min(...all) * .98, hi = Math.max(...all) * 1.02;
+  const padL = 8, padR = 50, padT = 10, padB = 22;
+  const X = (i) => padL + (W() - padL - padR) * (i / (n - 1));
+  const Y = (v) => padT + (H() - padT - padB) * (1 - (v - lo) / (hi - lo));
+
+  const t0 = performance.now(), DUR = 1100;
+  function frame(now) {
+    const e = easeOut(Math.min(1, (now - t0) / DUR));
+    const upto = Math.max(2, Math.floor(n * e));
+    ctx.clearRect(0, 0, W(), H());
+    ctx.font = "10px IBM Plex Mono"; ctx.fillStyle = "#64799a"; ctx.textAlign = "left";
+    for (let g = 0; g <= 3; g++) {
+      const v = lo + (hi - lo) * g / 3, y = Y(v);
+      ctx.strokeStyle = "rgba(148,180,220,.07)"; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W() - padR, y); ctx.stroke();
+      ctx.fillText(fmt(v, 2) + "×", W() - padR + 6, y + 3);
+    }
+    ctx.textAlign = "center";
+    [0, .5, 1].forEach(f => {
+      const i = Math.round((n - 1) * f);
+      const lx = Math.max(padL + 24, Math.min(W() - padR - 24, X(i)));
+      ctx.fillText(curve[i].date.slice(0, 7), lx, H() - 5);
+    });
+    const line = (key, col) => {
+      ctx.beginPath();
+      for (let i = 0; i < upto; i++) (i ? ctx.lineTo : ctx.moveTo).call(ctx, X(i), Y(curve[i][key]));
+      ctx.lineWidth = 2; ctx.strokeStyle = col; ctx.stroke();
+    };
+    line("buyhold", "#8b5cf6");
+    line("strategy", "#0d9488");
+    if (e < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  c.onmousemove = (ev) => {
+    const r = c.getBoundingClientRect();
+    const i = Math.round((ev.clientX - r.left - padL) / (W() - padL - padR) * (n - 1));
+    if (i < 0 || i >= n) return hideTip();
+    showTip(ev.clientX, ev.clientY, `
+      <div class="t-h">${curve[i].date}</div>
+      <div class="t-r"><span>الاستراتيجية</span><b style="color:#2dd4bf">${fmt(curve[i].strategy, 3)}×</b></div>
+      <div class="t-r"><span>شراء واحتفاظ</span><b style="color:#a78bfa">${fmt(curve[i].buyhold, 3)}×</b></div>`);
+  };
+  c.onmouseleave = hideTip;
+}
+
+/* ═══════════════ 6. Optimizer ═══════════════ */
+async function loadOptimizer() {
+  skeleton("pnl-optimize", 300);
+  try {
+    const o = await getJSON(`${API}/optimize?risk_profile=${state.profile}`);
+    renderOptimizer(o);
+  } catch (e) { panelError("pnl-optimize", e.message, loadOptimizer); }
+}
+function renderOptimizer(o) {
+  const el = body("pnl-optimize");
+  const opt = o.optimal;
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:22px" class="opt-grid">
+      <div><div id="frontierWrap"></div>
+        <div class="legend">
+          <span><i style="background:#2dd4bf"></i>الحد الكفء</span>
+          <span><i style="background:rgba(148,180,220,.5)"></i>محافظ عشوائية مقبولة</span>
+          <span><i style="background:#e8c268;height:9px;width:9px;border-radius:50%"></i>محفظتك (${esc(PROFILE_AR[o.risk_profile])})</span>
+        </div></div>
+      <div>
+        <div class="tiles" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">
+          <div class="tile gold"><div class="tl">عائد متوقع</div><div class="tv num">${fmt(opt.expected_return * 100, 1)}%</div></div>
+          <div class="tile"><div class="tl">مخاطرة σ</div><div class="tv num">${fmt(opt.risk * 100, 1)}%</div></div>
+          <div class="tile teal"><div class="tl">Sharpe</div><div class="tv num">${fmt(opt.sharpe, 2)}</div></div>
+        </div>
+        <div id="allocBars">${Object.entries(opt.weights).sort((a, b) => b[1] - a[1]).map(([t, w]) => `
+          <div class="alloc-row"><span class="tk">${t}</span><span class="nm">${esc(o.basket_ar[t] || "")}</span>
+            <div class="bar"><i data-w="${w * 100}"></i></div><span class="pc num">${fmt(w * 100, 1)}%</span></div>`).join("")}
+        </div>
+      </div>
+    </div>
+    <div class="foot-note">⚠ ${esc(o.notes_ar)} — عوائد سنة فعلية، ${o.n_samples.toLocaleString("en-US")} محفظة بدون بيع مكشوف.</div>`;
+  if (innerWidth < 900) el.querySelector(".opt-grid").style.gridTemplateColumns = "1fr";
+  requestAnimationFrame(() => requestAnimationFrame(() =>
+    el.querySelectorAll(".alloc-row i").forEach(i => i.style.width = i.dataset.w + "%")));
+  drawFrontier(el.querySelector("#frontierWrap"), o);
+}
+function drawFrontier(wrap, o) {
+  const { c, ctx, W, H } = makeCanvas(wrap, 240);
+  const pts = o.cloud.concat(o.frontier, [{ risk: o.optimal.risk, ret: o.optimal.expected_return }]);
+  const xs = pts.map(p => p.risk), ys = pts.map(p => p.ret);
+  const xlo = Math.min(...xs) * .95, xhi = Math.max(...xs) * 1.05;
+  const ylo = Math.min(...ys) - .02, yhi = Math.max(...ys) + .02;
+  const padL = 8, padR = 52, padT = 10, padB = 26;
+  const X = (v) => padL + (W() - padL - padR) * ((v - xlo) / (xhi - xlo));
+  const Y = (v) => padT + (H() - padT - padB) * (1 - (v - ylo) / (yhi - ylo));
+
+  const t0 = performance.now();
+  function frame(now) {
+    const e = easeOut(Math.min(1, (now - t0) / 900));
+    ctx.clearRect(0, 0, W(), H());
+    ctx.font = "10px IBM Plex Mono"; ctx.fillStyle = "#64799a";
+    ctx.textAlign = "left";
+    for (let g = 0; g <= 3; g++) {
+      const v = ylo + (yhi - ylo) * g / 3, y = Y(v);
+      ctx.strokeStyle = "rgba(148,180,220,.07)"; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W() - padR, y); ctx.stroke();
+      ctx.fillText(fmt(v * 100, 0) + "%", W() - padR + 6, y + 3);
+    }
+    ctx.textAlign = "center";
+    for (let g = 0; g <= 3; g++) {
+      const v = xlo + (xhi - xlo) * g / 3;
+      ctx.fillText("σ " + fmt(v * 100, 0) + "%", X(v), H() - 6);
+    }
+    // cloud
+    ctx.fillStyle = "rgba(148,180,220,.30)";
+    const cn = Math.floor(o.cloud.length * e);
+    for (let i = 0; i < cn; i++) {
+      const p = o.cloud[i];
+      ctx.beginPath(); ctx.arc(X(p.risk), Y(p.ret), 2, 0, 7); ctx.fill();
+    }
+    // frontier
+    ctx.beginPath();
+    const fn = Math.max(2, Math.floor(o.frontier.length * e));
+    for (let i = 0; i < fn; i++) (i ? ctx.lineTo : ctx.moveTo).call(ctx, X(o.frontier[i].risk), Y(o.frontier[i].ret));
+    ctx.lineWidth = 2.5; ctx.strokeStyle = "#2dd4bf";
+    ctx.shadowColor = "rgba(45,212,191,.45)"; ctx.shadowBlur = 6; ctx.stroke(); ctx.shadowBlur = 0;
+    // chosen portfolio
+    if (e > .8) {
+      const px = X(o.optimal.risk), py = Y(o.optimal.expected_return);
+      ctx.beginPath(); ctx.arc(px, py, 6, 0, 7); ctx.fillStyle = "#e8c268"; ctx.fill();
+      ctx.beginPath(); ctx.arc(px, py, 10, 0, 7); ctx.strokeStyle = "rgba(232,194,104,.5)"; ctx.lineWidth = 2; ctx.stroke();
+    }
+    if (e < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ═══════════════ 7. Copilot chat ═══════════════ */
+const chatLog = document.getElementById("chatLog");
+function addMsg(cls, html) {
+  const d = document.createElement("div");
+  d.className = "msg " + cls; d.innerHTML = html;
+  chatLog.appendChild(d);
+  chatLog.classList.add("open");
+  chatLog.scrollTop = chatLog.scrollHeight;
+  return d;
+}
+async function sendChat(text) {
+  text = (text || "").trim();
+  if (!text || state.chatBusy) return;
+  state.chatBusy = true;
+  document.getElementById("chatSend").disabled = true;
+  document.getElementById("chatInput").value = "";
+  addMsg("user", esc(text));
+  const typing = document.createElement("div");
+  typing.className = "typing"; typing.innerHTML = "<i></i><i></i><i></i>";
+  chatLog.appendChild(typing); chatLog.scrollTop = chatLog.scrollHeight;
+  try {
+    const r = await fetch(`${API}/chat`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text, history: state.chatHistory }),
+    });
+    typing.remove();
+    if (!r.ok) {
+      let msg = `HTTP ${r.status}`;
+      try { msg = (await r.json()).detail || msg; } catch {}
+      addMsg("err", "تعذّر الاتصال بالوكيل: " + esc(msg));
+      return;
+    }
+    const d = await r.json();
+    const meta = [
+      ...d.tools_used.map(t => `<span class="tag">⚙ ${esc(t)}</span>`),
+      ...d.tool_failures.map(t => `<span class="tag fail">✕ فشل ${esc(t)}</span>`),
+      ...d.sources.map(s => `<span class="tag src">${esc(s)}</span>`),
+    ].join("");
+    addMsg("bot", esc(d.reply) + (meta ? `<div class="meta">${meta}</div>` : ""));
+    state.chatHistory.push({ role: "user", content: text }, { role: "assistant", content: d.reply });
+    state.chatHistory = state.chatHistory.slice(-8);
+  } catch (e) {
+    typing.remove();
+    addMsg("err", "تعذّر الاتصال بالخادم — تحقق من الشبكة ثم أعد المحاولة.");
+  } finally {
+    state.chatBusy = false;
+    document.getElementById("chatSend").disabled = false;
+  }
+}
+document.getElementById("chatForm").addEventListener("submit", (e) => {
+  e.preventDefault(); sendChat(document.getElementById("chatInput").value);
+});
+document.querySelectorAll("#chatSuggest button").forEach(b =>
+  b.addEventListener("click", () => sendChat(b.textContent)));
+
+/* ═══════════════ 8. Risk profile modal ═══════════════ */
+const riskModal = document.getElementById("riskModal");
+const answers = [null, null, null];
+document.getElementById("profileBtn").onclick = () => riskModal.classList.add("open");
+document.getElementById("riskCancel").onclick = () => riskModal.classList.remove("open");
+riskModal.addEventListener("click", (e) => { if (e.target === riskModal) riskModal.classList.remove("open"); });
+document.querySelectorAll(".q-opts").forEach(g => g.querySelectorAll("button").forEach(b => {
+  b.onclick = () => {
+    g.querySelectorAll("button").forEach(x => x.classList.remove("sel"));
+    b.classList.add("sel");
+    answers[+g.dataset.q] = +b.dataset.v;
+    document.getElementById("riskSave").disabled = answers.some(a => a === null);
+  };
+}));
+document.getElementById("riskSave").onclick = () => {
+  const total = answers.reduce((a, b) => a + b, 0); // 0..6
+  state.profile = total <= 2 ? "conservative" : total <= 4 ? "balanced" : "aggressive";
+  localStorage.setItem("msa_profile", state.profile);
+  document.getElementById("profileLabel").textContent = PROFILE_AR[state.profile];
+  riskModal.classList.remove("open");
+  // live re-calibration of the panels that depend on the profile
+  if (state.ticker && state.analysis) {
+    renderHero(state.analysis);
+    loadPosition(state.ticker);
+    loadOptimizer();
+  }
+};
+
+/* ═══════════════ Boot ═══════════════ */
+document.getElementById("searchForm").addEventListener("submit", (e) => {
+  e.preventDefault(); runAnalysis(document.getElementById("tickerInput").value);
+});
+document.querySelectorAll("#quickChips .chip").forEach(ch =>
+  ch.addEventListener("click", () => runAnalysis(ch.dataset.t)));
+
+const initial = qs.get("ticker");
+if (initial) runAnalysis(initial);
+</script>
+</body>
+</html>
