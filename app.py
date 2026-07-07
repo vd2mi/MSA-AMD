@@ -1819,8 +1819,19 @@ async def optimize_portfolio(
     if profile not in RISK_PROFILES:
         raise HTTPException(status_code=422, detail="risk_profile must be conservative | balanced | aggressive")
 
-    tickers = [t for t, _ in HALAL_DEMO_BASKET]
-    histories = await asyncio.gather(*[fetch_daily_ohlcv(t) for t in tickers])
+    all_tickers = [t for t, _ in HALAL_DEMO_BASKET]
+    results = await asyncio.gather(
+        *[fetch_daily_ohlcv(t) for t in all_tickers], return_exceptions=True
+    )
+    tickers, histories = [], []
+    for t, res in zip(all_tickers, results):
+        if isinstance(res, BaseException):
+            logger.warning("Optimizer: dropping %s (fetch failed: %s)", t, res)
+            continue
+        tickers.append(t)
+        histories.append(res)
+    if len(tickers) < 4:
+        raise HTTPException(status_code=502, detail="Could not fetch enough basket history to optimize.")
 
     # align on common dates
     per_ticker: list[dict[str, float]] = [
