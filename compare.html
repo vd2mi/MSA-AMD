@@ -279,6 +279,21 @@
                 <!-- Comparison Rows -->
                 <div class="space-y-2" id="comparison-rows"></div>
 
+                <!-- Quant Lab Head-to-Head (v4 endpoints) -->
+                <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay:0.45s">
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Quant Lab — Head to Head</h3>
+                        <span class="text-[9px] font-mono font-black px-2 py-0.5 rounded-full bg-warn/15 text-warn border border-warn/30">MONTE CARLO · SHARIAH (BETA) · SIZING · BACKTEST</span>
+                    </div>
+                    <div id="quant-rows" class="space-y-2">
+                        <div class="flex items-center justify-center py-10"><div class="spinner"></div></div>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-white/5 text-[9px] font-mono text-gray-600 leading-relaxed">
+                        Monte Carlo: 10,000 GBM paths on each ticker's real 1y returns, 63 trading days, target = analyst mean (or +10%).
+                        Shariah screen &amp; income data are BETA (تجريبي). Backtest replays the technical pillar only — full-composite validation is a target.
+                    </div>
+                </div>
+
                 <!-- AI Verdicts -->
                 <div class="grid grid-cols-2 gap-6 animate-fade-in" style="animation-delay:0.5s">
                     <div class="glass-box p-6 rounded-xl border-l-2 border-l-bull">
@@ -307,7 +322,7 @@
     </main>
 
     <script>
-        const API_BASE = 'https://vd2mi-msa.hf.space';
+        const API_BASE = new URLSearchParams(window.location.search).get('api') || 'https://vd2mi-msa.hf.space';
         let radarChart = null;
 
         // --- Loader Engine ---
@@ -847,6 +862,9 @@
 
                 showState('results');
 
+                // quant lab loads in the background so the main verdict is never delayed
+                loadQuantCompare(a, b, dataA, dataB);
+
             } catch (err) {
                 document.getElementById('error-msg').textContent = err.message;
                 showState('error-state');
@@ -854,6 +872,132 @@
                 stopLoader();
                 document.getElementById('compare-btn').disabled = false;
             }
+        }
+
+        // ═══════════════ Quant Lab head-to-head (v4 endpoints) ═══════════════
+        function qRowText(label, vA, vB, clrA, clrB) {
+            return `
+                <div class="grid grid-cols-[1fr_auto_1fr] gap-3 items-center bg-black/20 border border-white/5 rounded-lg px-5 py-3">
+                    <div class="text-right font-mono text-sm ${clrA}">${vA}</div>
+                    <div class="text-[10px] font-mono text-gray-500 uppercase tracking-widest text-center w-28 leading-tight">${label}</div>
+                    <div class="text-left font-mono text-sm ${clrB}">${vB}</div>
+                </div>`;
+        }
+
+        async function loadQuantCompare(a, b, dataA, dataB) {
+            const el = document.getElementById('quant-rows');
+            el.innerHTML = '<div class="flex items-center justify-center py-10"><div class="spinner"></div></div>';
+
+            const settle = async (url) => {
+                try {
+                    const r = await fetch(url);
+                    if (!r.ok) return null;
+                    return await r.json();
+                } catch { return null; }
+            };
+            const urls = (t, data) => {
+                const pt = data.price_target || {};
+                const target = pt.target_mean || (pt.current ? +(pt.current * 1.10).toFixed(2) : null);
+                const score = (data.inference_weights || {}).composite_score;
+                return [
+                    `${API_BASE}/shariah?ticker=${encodeURIComponent(t)}`,
+                    `${API_BASE}/montecarlo?ticker=${encodeURIComponent(t)}&horizon_days=63${target ? `&target=${target}` : ''}`,
+                    `${API_BASE}/position-size?ticker=${encodeURIComponent(t)}&profile=balanced${score != null ? `&score=${score}` : ''}`,
+                    `${API_BASE}/backtest?ticker=${encodeURIComponent(t)}`,
+                ];
+            };
+            const [shA, mcA, psA, btA, shB, mcB, psB, btB] =
+                await Promise.all([...urls(a, dataA), ...urls(b, dataB)].map(settle));
+
+            let rows = '';
+            const NA = '<span class="text-gray-600">N/A</span>';
+
+            // Shariah status (BETA)
+            const shTxt = (s) => {
+                if (!s) return { txt: NA, cls: 'text-gray-500' };
+                const cls = s.status === 'compliant' ? 'text-bull font-bold' : s.status === 'non_compliant' ? 'text-bear font-bold' : 'text-warn font-bold';
+                const icon = s.status === 'compliant' ? '✓' : s.status === 'non_compliant' ? '✕' : '◐';
+                return { txt: `${icon} ${s.status_ar} <span class="text-[9px] text-gray-500">BETA</span>`, cls };
+            };
+            const sA = shTxt(shA), sB = shTxt(shB);
+            rows += qRowText('Shariah Status', sA.txt, sB.txt, sA.cls, sB.cls);
+
+            const dRatio = (s) => s && s.debt_ratio_pct != null ? fmt(s.debt_ratio_pct, 1) + '%' : NA;
+            rows += qRowText('Debt / MCap (≤30%)', dRatio(shA), dRatio(shB),
+                shA && shA.debt_pass === false ? 'text-bear' : 'text-gray-300',
+                shB && shB.debt_pass === false ? 'text-bear' : 'text-gray-300');
+
+            // Monte Carlo risk block
+            if (mcA || mcB) {
+                const probW = winner(mcA && mcA.prob_touch_target, mcB && mcB.prob_touch_target, true);
+                rows += makeRow('P(Touch Target) 63d',
+                    mcA ? fmt(mcA.prob_touch_target, 1) + '%' : 'N/A',
+                    mcB ? fmt(mcB.prob_touch_target, 1) + '%' : 'N/A',
+                    mcA ? Math.min(100, mcA.prob_touch_target) : 0,
+                    mcB ? Math.min(100, mcB.prob_touch_target) : 0,
+                    0.05, probW);
+                const varW = winner(mcA && mcA.var_95_pct, mcB && mcB.var_95_pct, false);
+                rows += makeRow('VaR 95% (63d)',
+                    mcA ? '−' + fmt(mcA.var_95_pct, 1) + '%' : 'N/A',
+                    mcB ? '−' + fmt(mcB.var_95_pct, 1) + '%' : 'N/A',
+                    ...pctOf(mcA && mcA.var_95_pct, mcB && mcB.var_95_pct), 0.1, varW);
+                const cvarW = winner(mcA && mcA.cvar_95_pct, mcB && mcB.cvar_95_pct, false);
+                rows += makeRow('CVaR 95% (63d)',
+                    mcA ? '−' + fmt(mcA.cvar_95_pct, 1) + '%' : 'N/A',
+                    mcB ? '−' + fmt(mcB.cvar_95_pct, 1) + '%' : 'N/A',
+                    ...pctOf(mcA && mcA.cvar_95_pct, mcB && mcB.cvar_95_pct), 0.15, cvarW);
+                rows += qRowText('Ann. Volatility σ',
+                    mcA ? fmt(mcA.sigma_annual * 100, 1) + '%' : NA,
+                    mcB ? fmt(mcB.sigma_annual * 100, 1) + '%' : NA,
+                    'text-gray-300', 'text-gray-300');
+            }
+
+            // Position sizing (balanced profile)
+            if (psA || psB) {
+                const psW = winner(psA && psA.recommended_pct, psB && psB.recommended_pct, true);
+                rows += makeRow('Position Size (bal.)',
+                    psA ? fmt(psA.recommended_pct, 1) + '%' : 'N/A',
+                    psB ? fmt(psB.recommended_pct, 1) + '%' : 'N/A',
+                    psA ? Math.min(100, psA.recommended_pct * 4) : 0,
+                    psB ? Math.min(100, psB.recommended_pct * 4) : 0,
+                    0.2, psW);
+                rows += qRowText('Stop Loss (2×ATR)',
+                    psA ? '$' + fmt(psA.stop_price) + ' (−' + fmt(psA.stop_pct, 1) + '%)' : NA,
+                    psB ? '$' + fmt(psB.stop_price) + ' (−' + fmt(psB.stop_pct, 1) + '%)' : NA,
+                    'text-bear', 'text-bear');
+            }
+
+            // Backtest (technical pillar)
+            if (btA || btB) {
+                const hitW = winner(btA && btA.hit_rate_pct, btB && btB.hit_rate_pct, true);
+                rows += makeRow('BT Hit Rate (2y)',
+                    btA && btA.hit_rate_pct != null ? fmt(btA.hit_rate_pct, 1) + '%' : 'N/A',
+                    btB && btB.hit_rate_pct != null ? fmt(btB.hit_rate_pct, 1) + '%' : 'N/A',
+                    btA ? Math.min(100, btA.hit_rate_pct || 0) : 0,
+                    btB ? Math.min(100, btB.hit_rate_pct || 0) : 0,
+                    0.25, hitW);
+                const shW = winner(btA && btA.sharpe_strategy, btB && btB.sharpe_strategy, true);
+                rows += makeRow('BT Sharpe (strategy)',
+                    btA && btA.sharpe_strategy != null ? fmt(btA.sharpe_strategy) : 'N/A',
+                    btB && btB.sharpe_strategy != null ? fmt(btB.sharpe_strategy) : 'N/A',
+                    ...pctOf(btA && btA.sharpe_strategy, btB && btB.sharpe_strategy), 0.3, shW);
+                const ddW = winner(btA && btA.max_dd_strategy_pct, btB && btB.max_dd_strategy_pct, true); // -10 beats -20
+                rows += makeRow('BT Max Drawdown',
+                    btA && btA.max_dd_strategy_pct != null ? fmt(btA.max_dd_strategy_pct, 1) + '%' : 'N/A',
+                    btB && btB.max_dd_strategy_pct != null ? fmt(btB.max_dd_strategy_pct, 1) + '%' : 'N/A',
+                    ...pctOf(btA && btA.max_dd_strategy_pct, btB && btB.max_dd_strategy_pct), 0.35, ddW);
+                const brW = winner(btA && btA.brier_score, btB && btB.brier_score, false);
+                rows += qRowText('BT Brier (calibration)',
+                    btA && btA.brier_score != null ? fmt(btA.brier_score, 3) + (brW === 'a' ? ' ●' : '') : NA,
+                    btB && btB.brier_score != null ? fmt(btB.brier_score, 3) + (brW === 'b' ? ' ●' : '') : NA,
+                    brW === 'a' ? 'text-bull font-bold' : 'text-gray-300',
+                    brW === 'b' ? 'text-indigo-400 font-bold' : 'text-gray-300');
+            }
+
+            if (!(shA || shB || mcA || mcB || psA || psB || btA || btB)) {
+                rows = '<div class="text-center py-8 text-xs font-mono text-gray-500">QUANT LAB DATA UNAVAILABLE — the API may be warming up. Re-run the comparison.</div>';
+            }
+            el.innerHTML = rows;
         }
 
         document.getElementById('compare-form').addEventListener('submit', (e) => {

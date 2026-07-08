@@ -594,8 +594,97 @@
                         </div>
                     </div>
 
+                    <!-- ═══ Quant Lab Row 1: Shariah Screen + Monte Carlo ═══ -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                        <!-- Shariah Screen (BETA) -->
+                        <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.34s;" data-tooltip="AAOIFI-Style Shariah Screen (BETA)&#10;Financial ratios vs market cap, 30%% threshold:&#10;  Interest-bearing debt / MCap&#10;  Cash + ST investments / MCap&#10;  Receivables / MCap&#10;Plus business-activity filter (banks, alcohol,&#10;tobacco, gambling...).&#10;&#10;Non-compliant income %% and purification rate&#10;need a fundamentals feed — shown as PENDING,&#10;never faked. Status is preliminary (تجريبي).">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Shariah Screen</h3>
+                                <span class="text-[9px] font-mono font-black px-2 py-0.5 rounded-full bg-warn/15 text-warn border border-warn/30">BETA · تجريبي</span>
+                            </div>
+                            <div id="shariah-body" class="min-h-[220px]"></div>
+                        </div>
+
+                        <!-- Monte Carlo Simulator -->
+                        <div class="md:col-span-2 glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.34s;" data-tooltip="Monte Carlo Simulator (GBM)&#10;10,000 price paths: S_t = S0·exp((μ−σ²/2)t + σ√t·Z)&#10;μ and σ estimated from the ticker's REAL&#10;1-year daily log returns.&#10;&#10;Cone: 5th–95th percentile of simulated paths&#10;Median: bold white line&#10;&#10;VaR 95%%: loss not exceeded in 95%% of paths&#10;CVaR 95%%: average loss of the worst 5%%&#10;Target Prob: %% of paths that touch your target.&#10;&#10;Seeded per ticker+day → reproducible.&#10;A probability distribution, not a forecast.">
+                            <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Monte Carlo <span class="text-[9px] text-gray-600 normal-case">(10,000 GBM paths · real μ/σ)</span></h3>
+                                <div class="flex items-center gap-2 text-[10px] font-mono">
+                                    <div class="flex rounded-lg overflow-hidden border border-border" id="mc-horizon-seg">
+                                        <button data-d="21" class="px-2.5 py-1 text-gray-500 hover:text-white transition">1M</button>
+                                        <button data-d="63" class="px-2.5 py-1 bg-bull/15 text-bull font-bold">3M</button>
+                                        <button data-d="126" class="px-2.5 py-1 text-gray-500 hover:text-white transition">6M</button>
+                                        <button data-d="252" class="px-2.5 py-1 text-gray-500 hover:text-white transition">1Y</button>
+                                    </div>
+                                    <span class="text-gray-500">TARGET</span>
+                                    <input id="mc-target-input" type="number" step="0.01" class="w-20 bg-black/40 border border-border rounded px-2 py-1 text-white font-mono text-[10px] focus:outline-none focus:border-bull/50">
+                                </div>
+                            </div>
+                            <div id="mc-body" class="min-h-[300px]"></div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ Quant Lab Row 2: Position Sizing + Backtest ═══ -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                        <!-- Position Sizing -->
+                        <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.38s;" data-tooltip="Position Sizing&#10;How much of your capital this trade deserves.&#10;&#10;w_vol = target volatility / realized volatility&#10;Kelly f* = p − (1−p)/b, damped to ¼ Kelly&#10;  p: win prob mapped from composite score&#10;  b: real avg 5-day gain / avg 5-day loss&#10;Final = min(w_vol, ¼Kelly) × profile, hard-capped.&#10;&#10;Stop = entry − 2×ATR(14).&#10;p-mapping calibration is in progress (beta).">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Position Sizing</h3>
+                                <div class="flex rounded-lg overflow-hidden border border-border text-[9px] font-mono" id="profile-seg">
+                                    <button data-p="conservative" class="px-2 py-1 text-gray-500 hover:text-white transition">SAFE</button>
+                                    <button data-p="balanced" class="px-2 py-1 bg-bull/15 text-bull font-bold">BAL</button>
+                                    <button data-p="aggressive" class="px-2 py-1 text-gray-500 hover:text-white transition">AGGR</button>
+                                </div>
+                            </div>
+                            <div id="possize-body" class="min-h-[220px]"></div>
+                        </div>
+
+                        <!-- Backtest -->
+                        <div class="md:col-span-2 glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.38s;" data-tooltip="Walk-Forward Backtest (2 years)&#10;Replays the TECHNICAL pillar of the composite&#10;signal day by day with no lookahead:&#10;long when score ≥ 55, flat otherwise.&#10;&#10;Hit Rate: %% of long signals with positive&#10;5-day forward return&#10;Brier: calibration of score-as-probability (0=perfect)&#10;Sharpe / Max DD vs Buy & Hold&#10;&#10;Sentiment & analyst pillars have no historical&#10;archive yet — full-composite validation is a&#10;TARGET, not an achieved result.">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Backtest &amp; Calibration <span class="text-[9px] text-gray-600 normal-case">(walk-forward · 2y)</span></h3>
+                                <span class="text-[9px] font-mono font-black px-2 py-0.5 rounded-full bg-warn/15 text-warn border border-warn/30">TECHNICAL PILLAR · FULL SIGNAL = TARGET</span>
+                            </div>
+                            <div id="backtest-body" class="min-h-[300px]"></div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ Halal Portfolio Optimizer (BETA) ═══ -->
+                    <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.42s;" data-tooltip="Halal Portfolio Optimizer (BETA)&#10;Markowitz efficient frontier, no short-selling,&#10;on real 1-year returns of a DEMO basket of&#10;US stocks held by Shariah ETFs (SPUS / HLAL).&#10;&#10;Gray dots: random feasible portfolios&#10;Green line: efficient frontier&#10;Amber dot: your portfolio for the selected&#10;risk profile.&#10;&#10;Wiring the basket to the live Shariah screen&#10;is pending — clearly labeled beta.">
+                        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+                            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Halal Portfolio Optimizer <span class="text-[9px] text-gray-600 normal-case">(Markowitz · no-short)</span></h3>
+                            <span class="text-[9px] font-mono font-black px-2 py-0.5 rounded-full bg-warn/15 text-warn border border-warn/30">BETA · DEMO BASKET (SPUS/HLAL NAMES)</span>
+                        </div>
+                        <div id="optimizer-body" class="min-h-[260px]"></div>
+                    </div>
+
+                    <!-- ═══ Ask MSA — Arabic copilot ═══ -->
+                    <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.46s;" data-tooltip="Ask MSA — Agentic Copilot&#10;GPT-4o with tool-calling over the LIVE endpoints:&#10;analyze, Monte Carlo, Shariah, sizing, backtest.&#10;&#10;Anti-hallucination rules:&#10;- may only quote numbers returned by tools&#10;- states tool failures explicitly&#10;- cites the source of every figure&#10;&#10;Ask in Arabic: «أشتري أرامكو؟»&#10;Saudi tickers via .SR (e.g. 2222.SR).">
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl">🤖</span>
+                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Ask MSA <span class="text-[9px] text-gray-600 normal-case">— Arabic copilot · tool-calling · grounded numbers only</span></h3>
+                            </div>
+                            <span class="text-[9px] font-mono text-gray-600">GPT-4o + LIVE TOOLS</span>
+                        </div>
+                        <div id="chat-log" class="hidden max-h-80 overflow-y-auto space-y-3 mb-4 pr-1"></div>
+                        <div class="flex flex-wrap gap-2 mb-3" id="chat-suggestions">
+                            <button class="text-[10px] font-mono px-3 py-1.5 glass-box rounded-full text-gray-400 hover:text-bull hover:border-bull/30 transition">أشتري أرامكو؟</button>
+                            <button class="text-[10px] font-mono px-3 py-1.5 glass-box rounded-full text-gray-400 hover:text-bull hover:border-bull/30 transition">هل سهم أبل حلال؟</button>
+                            <button class="text-[10px] font-mono px-3 py-1.5 glass-box rounded-full text-gray-400 hover:text-bull hover:border-bull/30 transition">ما احتمال وصول NVDA إلى 220؟</button>
+                            <button class="text-[10px] font-mono px-3 py-1.5 glass-box rounded-full text-gray-400 hover:text-bull hover:border-bull/30 transition">كم أستثمر في تسلا وأين أضع وقف الخسارة؟</button>
+                        </div>
+                        <form id="chat-form" class="flex gap-3">
+                            <input id="chat-input" dir="auto" placeholder="اسأل بالعربية… (or ask in English)"
+                                class="flex-1 bg-black/40 border border-border rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-bull/50 transition">
+                            <button type="submit" id="chat-send" class="bg-bull/10 border border-bull/30 text-bull px-5 py-2 rounded-lg text-sm font-bold hover:bg-bull/20 transition">Send</button>
+                        </form>
+                    </div>
+
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        
+
                         <div class="lg:col-span-2 glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.3s;" data-tooltip="Price Action Chart&#10;Real closing prices over the last 30 days.&#10;&#10;Green segments = price moving up&#10;Red segments = price moving down&#10;&#10;SMA 50 (green dashed): Short-term trend&#10;SMA 200 (amber dashed): Long-term trend">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Price Action</h3>
@@ -668,7 +757,7 @@
     </main>
 
     <script>
-        const API_BASE = 'https://vd2mi-msa.hf.space';
+        const API_BASE = new URLSearchParams(window.location.search).get('api') || 'https://vd2mi-msa.hf.space';
         let currentChart = null;
 
         // --- Loader Engine ---
@@ -1248,7 +1337,540 @@
             }
 
             initChart(data);
+            loadQuantLab(data);
         }
+
+        // ═══════════════ Quant Lab (v4 endpoints) ═══════════════
+        const ql = {
+            ticker: null,
+            spot: null,
+            score: null,
+            mcHorizon: 63,
+            mcTarget: null,
+            profile: localStorage.getItem('msa_profile') || 'balanced',
+        };
+        const escHtml = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const curSym = (t) => t && t.endsWith('.SR') ? 'SAR ' : '$';
+        const fmtN = (v, d = 2) => (v == null || isNaN(v)) ? 'N/A' : Number(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+
+        function qlSpinner(id) {
+            document.getElementById(id).innerHTML =
+                `<div class="flex items-center justify-center h-full min-h-[180px]"><div class="spinner"></div></div>`;
+        }
+        function qlError(id, msg, retryFn) {
+            const el = document.getElementById(id);
+            el.innerHTML = `<div class="flex flex-col items-center justify-center min-h-[180px] gap-3 text-center">
+                <span class="text-xs font-mono text-gray-500">DATA UNAVAILABLE — ${escHtml(msg)}</span>
+                <button class="text-[10px] font-mono px-4 py-1.5 glass-box rounded text-gray-400 hover:text-bull transition">RETRY</button></div>`;
+            el.querySelector('button').onclick = retryFn;
+        }
+
+        function loadQuantLab(data) {
+            ql.ticker = data.ticker;
+            ql.spot = (data.price_target || {}).current || null;
+            ql.score = (data.inference_weights || {}).composite_score ?? null;
+            ql.mcTarget = (data.price_target || {}).target_mean
+                || (ql.spot ? +(ql.spot * 1.10).toFixed(2) : null);
+            loadShariah();
+            loadMonteCarlo();
+            loadPositionSize();
+            loadBacktest();
+            loadOptimizer();
+        }
+
+        // ---- crisp canvas helper ----
+        function makeQlCanvas(container, height) {
+            container.innerHTML = '';
+            const c = document.createElement('canvas');
+            c.style.width = '100%'; c.style.height = height + 'px'; c.style.display = 'block';
+            container.appendChild(c);
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            c.width = c.clientWidth * dpr; c.height = height * dpr;
+            const ctx = c.getContext('2d');
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            return { c, ctx, W: c.clientWidth, H: height };
+        }
+        const qlEase = (t) => 1 - Math.pow(1 - t, 3);
+
+        // ═══ Shariah Screen (BETA) ═══
+        async function loadShariah() {
+            qlSpinner('shariah-body');
+            try {
+                const r = await fetch(`${API_BASE}/shariah?ticker=${encodeURIComponent(ql.ticker)}`);
+                if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || `HTTP ${r.status}`);
+                renderShariah(await r.json());
+            } catch (e) { qlError('shariah-body', e.message, loadShariah); }
+        }
+        function renderShariah(s) {
+            const kind = s.status === 'compliant' ? 'halal' : s.status === 'non_compliant' ? 'haram' : 'mixed';
+            const cfg = {
+                halal: { icon: '✓', cls: 'text-bull', box: 'bg-bull/10 border-bull/30', en: 'COMPLIANT' },
+                haram: { icon: '✕', cls: 'text-bear', box: 'bg-bear/10 border-bear/30', en: 'NON-COMPLIANT' },
+                mixed: { icon: '◐', cls: 'text-warn', box: 'bg-warn/10 border-warn/30', en: s.status === 'unknown' ? 'UNKNOWN' : 'MIXED' },
+            }[kind];
+            const ratio = (label, val, pass) => {
+                const na = val == null;
+                const w = na ? 0 : Math.min(100, val / 60 * 100); // 60% = full bar, threshold marker at 50%
+                const vCls = na ? 'text-gray-500' : pass ? 'text-bull' : 'text-bear';
+                const bCls = pass === false ? 'bg-bear' : 'bg-bull';
+                return `<div class="mb-2.5">
+                    <div class="flex justify-between text-[10px] font-mono mb-1">
+                        <span class="text-gray-500">${label}</span>
+                        <span class="${vCls} font-bold">${na ? 'PENDING' : fmtN(val, 1) + '%'}</span>
+                    </div>
+                    <div class="relative w-full h-1.5 bg-gray-800 rounded-full">
+                        <div class="h-full ${bCls} rounded-full transition-all duration-700" style="width:${w}%"></div>
+                        <div class="absolute top-[-3px] bottom-[-3px] w-0.5 bg-warn rounded" style="left:50%" title="30% AAOIFI threshold"></div>
+                    </div>
+                </div>`;
+            };
+            document.getElementById('shariah-body').innerHTML = `
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-11 h-11 rounded-xl border ${cfg.box} flex items-center justify-center text-xl ${cfg.cls}">${cfg.icon}</div>
+                    <div>
+                        <div class="text-lg font-black ${cfg.cls}">${escHtml(s.status_ar)} <span class="text-[10px] font-mono text-gray-500">${cfg.en}</span></div>
+                        <div class="text-[10px] font-mono text-gray-500">${escHtml(s.company || s.ticker)} · ${escHtml(s.industry || s.sector || 'sector unknown')}</div>
+                    </div>
+                </div>
+                ${s.business_flags.length ? `<div class="text-[10px] font-mono text-bear mb-3">⚠ ${s.business_flags.map(escHtml).join(' · ')}</div>` : ''}
+                ${ratio('DEBT / MCAP', s.debt_ratio_pct, s.debt_pass)}
+                ${ratio('CASH / MCAP', s.cash_ratio_pct, s.cash_pass)}
+                ${ratio('RECEIVABLES / MCAP', s.receivables_ratio_pct, s.receivables_pass)}
+                <div class="grid grid-cols-2 gap-2 mt-3 text-[10px] font-mono">
+                    <div class="bg-black/20 rounded p-2 border border-white/5 text-center">
+                        <div class="text-gray-500">NON-COMPLIANT INCOME</div>
+                        <div class="text-warn font-bold">PENDING FEED</div>
+                    </div>
+                    <div class="bg-black/20 rounded p-2 border border-white/5 text-center">
+                        <div class="text-gray-500">نسبة التطهير</div>
+                        <div class="text-warn font-bold">PENDING FEED</div>
+                    </div>
+                </div>
+                <div class="mt-3 pt-2 border-t border-white/5 text-[9px] font-mono text-gray-600 leading-relaxed">AAOIFI 30% screens on Yahoo balance sheet · ${escHtml(s.notes_ar)}</div>`;
+        }
+
+        // ═══ Monte Carlo ═══
+        let mcAnimId = null;
+        async function loadMonteCarlo() {
+            qlSpinner('mc-body');
+            try {
+                let url = `${API_BASE}/montecarlo?ticker=${encodeURIComponent(ql.ticker)}&horizon_days=${ql.mcHorizon}`;
+                if (ql.mcTarget) url += `&target=${ql.mcTarget}`;
+                const r = await fetch(url);
+                if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || `HTTP ${r.status}`);
+                renderMonteCarlo(await r.json());
+            } catch (e) { qlError('mc-body', e.message, loadMonteCarlo); }
+        }
+        function renderMonteCarlo(mc) {
+            ql.mcTarget = mc.target;
+            document.getElementById('mc-target-input').value = mc.target;
+            const cs = curSym(mc.ticker);
+            const body = document.getElementById('mc-body');
+            body.innerHTML = `
+                <div id="mc-canvas-wrap"></div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4 text-[10px] font-mono">
+                    <div class="bg-black/20 rounded p-2.5 border border-white/5 text-center">
+                        <div class="text-gray-500 mb-1">P(TOUCH ${cs}${fmtN(mc.target)})</div>
+                        <div class="text-xl font-black ${mc.prob_touch_target >= 50 ? 'text-bull' : 'text-warn'}">${fmtN(mc.prob_touch_target, 1)}%</div>
+                        <div class="text-gray-600">end above: ${fmtN(mc.prob_end_above_target, 1)}%</div>
+                    </div>
+                    <div class="bg-black/20 rounded p-2.5 border border-white/5 text-center">
+                        <div class="text-gray-500 mb-1">VaR 95%</div>
+                        <div class="text-xl font-black text-bear">−${fmtN(mc.var_95_pct, 1)}%</div>
+                        <div class="text-gray-600">${cs}${fmtN(mc.var_95_price)}</div>
+                    </div>
+                    <div class="bg-black/20 rounded p-2.5 border border-white/5 text-center">
+                        <div class="text-gray-500 mb-1">CVaR 95%</div>
+                        <div class="text-xl font-black text-bear">−${fmtN(mc.cvar_95_pct, 1)}%</div>
+                        <div class="text-gray-600">avg worst 5%</div>
+                    </div>
+                    <div class="bg-black/20 rounded p-2.5 border border-white/5 text-center">
+                        <div class="text-gray-500 mb-1">E[PRICE] @${mc.horizon_days}D</div>
+                        <div class="text-xl font-black text-white">${cs}${fmtN(mc.expected_price)}</div>
+                        <div class="text-gray-600">μ ${fmtN(mc.mu_annual * 100, 1)}% · σ ${fmtN(mc.sigma_annual * 100, 1)}%</div>
+                    </div>
+                </div>
+                <div class="mt-2 text-[9px] font-mono text-gray-600">Simulation on real 1y returns — a probability distribution, not a forecast. Seed fixed per ticker/day (reproducible).</div>`;
+            drawFanChart(document.getElementById('mc-canvas-wrap'), mc);
+        }
+        function drawFanChart(wrap, mc) {
+            if (mcAnimId) cancelAnimationFrame(mcAnimId);
+            const { c, ctx, W, H } = makeQlCanvas(wrap, 230);
+            const n = mc.p50.length;
+            const lo = Math.min(...mc.p05, mc.spot, mc.target) * 0.985;
+            const hi = Math.max(...mc.p95, mc.spot, mc.target) * 1.015;
+            const padL = 44, padR = 10, padT = 10, padB = 20;
+            const X = (i) => padL + (W - padL - padR) * (i / (n - 1));
+            const Y = (v) => padT + (H - padT - padB) * (1 - (v - lo) / (hi - lo));
+            const t0 = performance.now(), DUR = 1200;
+
+            function frame(now) {
+                const e = qlEase(Math.min(1, (now - t0) / DUR));
+                const upto = Math.max(2, Math.floor(n * e));
+                ctx.clearRect(0, 0, W, H);
+
+                ctx.font = '9px JetBrains Mono, monospace'; ctx.fillStyle = '#666';
+                ctx.textAlign = 'right';
+                for (let g = 0; g <= 4; g++) {
+                    const v = lo + (hi - lo) * g / 4, y = Y(v);
+                    ctx.strokeStyle = '#1e1e24'; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+                    ctx.fillText(fmtN(v, v > 500 ? 0 : 1), padL - 6, y + 3);
+                }
+                ctx.textAlign = 'center';
+                [0, .25, .5, .75, 1].forEach(f => {
+                    const i = Math.round((n - 1) * f);
+                    const lx = Math.max(padL + 14, Math.min(W - padR - 12, X(i)));
+                    ctx.fillText(i === 0 ? 'D0' : '+' + i, lx, H - 5);
+                });
+
+                const band = (a, b, alpha) => {
+                    ctx.beginPath();
+                    for (let i = 0; i < upto; i++) (i ? ctx.lineTo : ctx.moveTo).call(ctx, X(i), Y(a[i]));
+                    for (let i = upto - 1; i >= 0; i--) ctx.lineTo(X(i), Y(b[i]));
+                    ctx.closePath();
+                    ctx.fillStyle = `rgba(0,255,136,${alpha})`; ctx.fill();
+                };
+                band(mc.p05, mc.p95, 0.08);
+                band(mc.p25, mc.p75, 0.15);
+
+                ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,255,136,0.10)';
+                for (const p of mc.sample_paths) {
+                    ctx.beginPath();
+                    for (let i = 0; i < upto; i++) (i ? ctx.lineTo : ctx.moveTo).call(ctx, X(i), Y(p[i]));
+                    ctx.stroke();
+                }
+
+                ctx.setLineDash([5, 5]); ctx.strokeStyle = 'rgba(245,158,11,0.6)'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(padL, Y(mc.target)); ctx.lineTo(W - padR, Y(mc.target)); ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = '#f59e0b'; ctx.textAlign = 'left';
+                ctx.fillText('TARGET', padL + 4, Y(mc.target) - 5);
+
+                ctx.beginPath();
+                for (let i = 0; i < upto; i++) (i ? ctx.lineTo : ctx.moveTo).call(ctx, X(i), Y(mc.p50[i]));
+                ctx.lineWidth = 2.5; ctx.strokeStyle = '#ffffff';
+                ctx.shadowColor = 'rgba(255,255,255,0.5)'; ctx.shadowBlur = 8;
+                ctx.stroke(); ctx.shadowBlur = 0;
+
+                const hx = X(upto - 1), hy = Y(mc.p50[upto - 1]);
+                ctx.beginPath(); ctx.arc(hx, hy, 3.5, 0, 7); ctx.fillStyle = '#fff'; ctx.fill();
+
+                if (e < 1) mcAnimId = requestAnimationFrame(frame);
+            }
+            mcAnimId = requestAnimationFrame(frame);
+
+            c.title = 'P05–P95 cone · bold white median · amber target';
+        }
+        document.querySelectorAll('#mc-horizon-seg button').forEach(b => b.addEventListener('click', () => {
+            document.querySelectorAll('#mc-horizon-seg button').forEach(x => x.className = 'px-2.5 py-1 text-gray-500 hover:text-white transition');
+            b.className = 'px-2.5 py-1 bg-bull/15 text-bull font-bold';
+            ql.mcHorizon = +b.dataset.d;
+            if (ql.ticker) loadMonteCarlo();
+        }));
+        document.getElementById('mc-target-input').addEventListener('change', (e) => {
+            const v = parseFloat(e.target.value);
+            if (v > 0 && ql.ticker) { ql.mcTarget = v; loadMonteCarlo(); }
+        });
+
+        // ═══ Position Sizing ═══
+        async function loadPositionSize() {
+            qlSpinner('possize-body');
+            try {
+                let url = `${API_BASE}/position-size?ticker=${encodeURIComponent(ql.ticker)}&profile=${ql.profile}&capital=100000`;
+                if (ql.score != null) url += `&score=${ql.score}`;
+                const r = await fetch(url);
+                if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || `HTTP ${r.status}`);
+                renderPositionSize(await r.json());
+            } catch (e) { qlError('possize-body', e.message, loadPositionSize); }
+        }
+        function renderPositionSize(p) {
+            const cs = curSym(p.ticker);
+            const zero = p.recommended_pct <= 0;
+            document.getElementById('possize-body').innerHTML = `
+                <div class="text-center py-2">
+                    <div class="text-4xl font-black font-mono ${zero ? 'text-gray-500' : 'text-bull'}">${fmtN(p.recommended_pct, 1)}%</div>
+                    <div class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">of capital · ${p.profile_ar} profile · cap ${fmtN(p.cap_pct, 0)}%</div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mt-2 text-[10px] font-mono">
+                    <div class="bg-black/20 rounded p-2 border border-white/5 text-center">
+                        <div class="text-gray-500">STOP (2×ATR)</div>
+                        <div class="text-bear font-bold">${cs}${fmtN(p.stop_price)}</div>
+                        <div class="text-gray-600">−${fmtN(p.stop_pct, 1)}%</div>
+                    </div>
+                    <div class="bg-black/20 rounded p-2 border border-white/5 text-center">
+                        <div class="text-gray-500">ANNUAL σ</div>
+                        <div class="text-white font-bold">${fmtN(p.sigma_annual * 100, 1)}%</div>
+                        <div class="text-gray-600">realized 1y</div>
+                    </div>
+                    ${p.shares != null ? `<div class="bg-black/20 rounded p-2 border border-white/5 text-center col-span-2">
+                        <div class="text-gray-500">ON $100,000 CAPITAL</div>
+                        <div class="text-white font-bold">${p.shares} shares ≈ ${cs}${fmtN(p.position_value, 0)}</div>
+                    </div>` : ''}
+                </div>
+                <button id="possize-formula-btn" class="mt-3 text-[10px] font-mono text-bull/80 hover:text-bull underline decoration-dotted">SHOW FORMULA ▾</button>
+                <div id="possize-formula" class="hidden mt-2 bg-black/30 rounded p-3 space-y-1">
+                    ${p.formulas.map(f => `<div class="text-[9px] font-mono text-gray-400">${escHtml(f)}</div>`).join('')}
+                </div>
+                <div class="mt-3 pt-2 border-t border-white/5 text-[9px] font-mono text-gray-600 leading-relaxed">${escHtml(p.notes_ar)}</div>`;
+            document.getElementById('possize-formula-btn').onclick = () => {
+                const box = document.getElementById('possize-formula');
+                box.classList.toggle('hidden');
+                document.getElementById('possize-formula-btn').textContent =
+                    box.classList.contains('hidden') ? 'SHOW FORMULA ▾' : 'HIDE FORMULA ▴';
+            };
+        }
+        document.querySelectorAll('#profile-seg button').forEach(b => b.addEventListener('click', () => {
+            document.querySelectorAll('#profile-seg button').forEach(x => x.className = 'px-2 py-1 text-gray-500 hover:text-white transition');
+            b.className = 'px-2 py-1 bg-bull/15 text-bull font-bold';
+            ql.profile = b.dataset.p;
+            localStorage.setItem('msa_profile', ql.profile);
+            if (ql.ticker) { loadPositionSize(); loadOptimizer(); }
+        }));
+
+        // ═══ Backtest ═══
+        async function loadBacktest() {
+            qlSpinner('backtest-body');
+            try {
+                const r = await fetch(`${API_BASE}/backtest?ticker=${encodeURIComponent(ql.ticker)}`);
+                if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || `HTTP ${r.status}`);
+                renderBacktest(await r.json());
+            } catch (e) { qlError('backtest-body', e.message, loadBacktest); }
+        }
+        function renderBacktest(bt) {
+            const stat = (label, val, sub, cls = 'text-white') => `
+                <div class="bg-black/20 rounded p-2.5 border border-white/5 text-center">
+                    <div class="text-gray-500 mb-1">${label}</div>
+                    <div class="text-lg font-black ${cls}">${val}</div>
+                    <div class="text-gray-600">${sub || ''}</div>
+                </div>`;
+            document.getElementById('backtest-body').innerHTML = `
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div class="lg:col-span-2">
+                        <div id="bt-canvas-wrap"></div>
+                        <div class="flex gap-4 mt-2 text-[9px] font-mono text-gray-500">
+                            <span><span class="inline-block w-3 h-0.5 bg-bull align-middle mr-1"></span>STRATEGY (tech ≥ ${fmtN(bt.signal_threshold, 0)})</span>
+                            <span><span class="inline-block w-3 h-0.5 align-middle mr-1" style="background:#a78bfa"></span>BUY &amp; HOLD</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-[10px] font-mono content-start">
+                        ${stat('HIT RATE', bt.hit_rate_pct != null ? fmtN(bt.hit_rate_pct, 1) + '%' : 'N/A', bt.n_signals + ' signals · 5d fwd', 'text-bull')}
+                        ${stat('BRIER', bt.brier_score != null ? fmtN(bt.brier_score, 3) : 'N/A', 'lower = better calib.')}
+                        ${stat('SHARPE', bt.sharpe_strategy ?? 'N/A', 'vs ' + (bt.sharpe_buyhold ?? 'N/A') + ' B&H')}
+                        ${stat('MAX DD', bt.max_dd_strategy_pct != null ? fmtN(bt.max_dd_strategy_pct, 1) + '%' : 'N/A', 'B&H: ' + fmtN(bt.max_dd_buyhold_pct, 1) + '%', 'text-bear')}
+                        ${stat('TOTAL RET', bt.total_return_strategy_pct != null ? fmtN(bt.total_return_strategy_pct, 1) + '%' : 'N/A', 'B&H: ' + fmtN(bt.total_return_buyhold_pct, 1) + '%')}
+                        ${stat('EXPOSURE', fmtN(bt.exposure_pct, 0) + '%', 'of trading days')}
+                    </div>
+                </div>
+                <div class="mt-3 pt-2 border-t border-white/5 text-[9px] font-mono text-gray-600 leading-relaxed">⚠ Walk-forward replay of the TECHNICAL pillar only (RSI/MACD/slope/Z, no lookahead) on 2y of real data. Historical sentiment &amp; analyst archives are being built — full-composite metrics remain a VALIDATION TARGET (هدف التحقق), not an achieved result.</div>`;
+            drawEquityChart(document.getElementById('bt-canvas-wrap'), bt.equity_curve);
+        }
+        function drawEquityChart(wrap, curve) {
+            const { ctx, W, H } = makeQlCanvas(wrap, 220);
+            const n = curve.length;
+            if (!n) return;
+            const all = curve.flatMap(p => [p.strategy, p.buyhold]);
+            const lo = Math.min(...all) * 0.98, hi = Math.max(...all) * 1.02;
+            const padL = 40, padR = 8, padT = 8, padB = 20;
+            const X = (i) => padL + (W - padL - padR) * (i / (n - 1));
+            const Y = (v) => padT + (H - padT - padB) * (1 - (v - lo) / (hi - lo));
+            const t0 = performance.now(), DUR = 1000;
+            function frame(now) {
+                const e = qlEase(Math.min(1, (now - t0) / DUR));
+                const upto = Math.max(2, Math.floor(n * e));
+                ctx.clearRect(0, 0, W, H);
+                ctx.font = '9px JetBrains Mono, monospace'; ctx.fillStyle = '#666';
+                ctx.textAlign = 'right';
+                for (let g = 0; g <= 3; g++) {
+                    const v = lo + (hi - lo) * g / 3, y = Y(v);
+                    ctx.strokeStyle = '#1e1e24'; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+                    ctx.fillText(fmtN(v, 2) + 'x', padL - 5, y + 3);
+                }
+                ctx.textAlign = 'center';
+                [0, .5, 1].forEach(f => {
+                    const i = Math.round((n - 1) * f);
+                    const lx = Math.max(padL + 22, Math.min(W - padR - 22, X(i)));
+                    ctx.fillText(curve[i].date.slice(0, 7), lx, H - 5);
+                });
+                const line = (key, col) => {
+                    ctx.beginPath();
+                    for (let i = 0; i < upto; i++) (i ? ctx.lineTo : ctx.moveTo).call(ctx, X(i), Y(curve[i][key]));
+                    ctx.lineWidth = 2; ctx.strokeStyle = col; ctx.stroke();
+                };
+                line('buyhold', '#a78bfa');
+                line('strategy', '#00ff88');
+                if (e < 1) requestAnimationFrame(frame);
+            }
+            requestAnimationFrame(frame);
+        }
+
+        // ═══ Halal Optimizer (BETA) ═══
+        async function loadOptimizer() {
+            qlSpinner('optimizer-body');
+            try {
+                const r = await fetch(`${API_BASE}/optimize?risk_profile=${ql.profile}`);
+                if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || `HTTP ${r.status}`);
+                renderOptimizer(await r.json());
+            } catch (e) { qlError('optimizer-body', e.message, loadOptimizer); }
+        }
+        function renderOptimizer(o) {
+            const opt = o.optimal;
+            const weightRows = Object.entries(opt.weights).sort((x, y) => y[1] - x[1]).map(([t, w]) => `
+                <div class="flex items-center gap-2 text-[10px] font-mono mb-1.5">
+                    <span class="w-14 text-gray-300 font-bold">${t}</span>
+                    <span class="w-24 text-gray-600 truncate">${escHtml(o.basket_ar[t] || '')}</span>
+                    <div class="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-bull rounded-full transition-all duration-700" style="width:${w * 100}%"></div>
+                    </div>
+                    <span class="w-12 text-right text-bull font-bold">${fmtN(w * 100, 1)}%</span>
+                </div>`).join('');
+            document.getElementById('optimizer-body').innerHTML = `
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <div id="frontier-canvas-wrap"></div>
+                        <div class="flex flex-wrap gap-4 mt-2 text-[9px] font-mono text-gray-500">
+                            <span><span class="inline-block w-3 h-0.5 bg-bull align-middle mr-1"></span>EFFICIENT FRONTIER</span>
+                            <span><span class="inline-block w-2 h-2 rounded-full align-middle mr-1" style="background:#555"></span>RANDOM PORTFOLIOS</span>
+                            <span><span class="inline-block w-2 h-2 rounded-full bg-warn align-middle mr-1"></span>YOUR PORTFOLIO (${ql.profile.toUpperCase()})</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="grid grid-cols-3 gap-2 mb-3 text-[10px] font-mono">
+                            <div class="bg-black/20 rounded p-2 border border-white/5 text-center">
+                                <div class="text-gray-500">E[RETURN]</div>
+                                <div class="text-base font-black text-bull">${fmtN(opt.expected_return * 100, 1)}%</div>
+                            </div>
+                            <div class="bg-black/20 rounded p-2 border border-white/5 text-center">
+                                <div class="text-gray-500">RISK σ</div>
+                                <div class="text-base font-black text-white">${fmtN(opt.risk * 100, 1)}%</div>
+                            </div>
+                            <div class="bg-black/20 rounded p-2 border border-white/5 text-center">
+                                <div class="text-gray-500">SHARPE</div>
+                                <div class="text-base font-black text-bull">${fmtN(opt.sharpe, 2)}</div>
+                            </div>
+                        </div>
+                        ${weightRows}
+                    </div>
+                </div>
+                <div class="mt-3 pt-2 border-t border-white/5 text-[9px] font-mono text-gray-600 leading-relaxed">⚠ BETA — real Markowitz optimization (no short-selling, ${o.n_samples.toLocaleString('en-US')} sampled portfolios, real 1y returns) on a DEMO basket of US names held by Shariah ETFs (SPUS/HLAL). Live Shariah-screened universe wiring is pending.</div>`;
+            drawFrontier(document.getElementById('frontier-canvas-wrap'), o);
+        }
+        function drawFrontier(wrap, o) {
+            const { ctx, W, H } = makeQlCanvas(wrap, 210);
+            const pts = o.cloud.concat(o.frontier, [{ risk: o.optimal.risk, ret: o.optimal.expected_return }]);
+            const xs = pts.map(p => p.risk), ys = pts.map(p => p.ret);
+            const xlo = Math.min(...xs) * 0.95, xhi = Math.max(...xs) * 1.05;
+            const ylo = Math.min(...ys) - 0.02, yhi = Math.max(...ys) + 0.02;
+            const padL = 40, padR = 8, padT = 8, padB = 22;
+            const X = (v) => padL + (W - padL - padR) * ((v - xlo) / (xhi - xlo));
+            const Y = (v) => padT + (H - padT - padB) * (1 - (v - ylo) / (yhi - ylo));
+            const t0 = performance.now();
+            function frame(now) {
+                const e = qlEase(Math.min(1, (now - t0) / 900));
+                ctx.clearRect(0, 0, W, H);
+                ctx.font = '9px JetBrains Mono, monospace'; ctx.fillStyle = '#666';
+                ctx.textAlign = 'right';
+                for (let g = 0; g <= 3; g++) {
+                    const v = ylo + (yhi - ylo) * g / 3, y = Y(v);
+                    ctx.strokeStyle = '#1e1e24'; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+                    ctx.fillText(fmtN(v * 100, 0) + '%', padL - 5, y + 3);
+                }
+                ctx.textAlign = 'center';
+                for (let g = 0; g <= 3; g++) {
+                    const v = xlo + (xhi - xlo) * g / 3;
+                    ctx.fillText('σ' + fmtN(v * 100, 0) + '%', Math.max(padL + 14, X(v)), H - 5);
+                }
+                ctx.fillStyle = 'rgba(136,136,136,0.4)';
+                const cn = Math.floor(o.cloud.length * e);
+                for (let i = 0; i < cn; i++) {
+                    const p = o.cloud[i];
+                    ctx.beginPath(); ctx.arc(X(p.risk), Y(p.ret), 1.8, 0, 7); ctx.fill();
+                }
+                ctx.beginPath();
+                const fn = Math.max(2, Math.floor(o.frontier.length * e));
+                for (let i = 0; i < fn; i++) (i ? ctx.lineTo : ctx.moveTo).call(ctx, X(o.frontier[i].risk), Y(o.frontier[i].ret));
+                ctx.lineWidth = 2.5; ctx.strokeStyle = '#00ff88';
+                ctx.shadowColor = 'rgba(0,255,136,0.4)'; ctx.shadowBlur = 6; ctx.stroke(); ctx.shadowBlur = 0;
+                if (e > 0.8) {
+                    const px = X(o.optimal.risk), py = Y(o.optimal.expected_return);
+                    ctx.beginPath(); ctx.arc(px, py, 5.5, 0, 7); ctx.fillStyle = '#f59e0b'; ctx.fill();
+                    ctx.beginPath(); ctx.arc(px, py, 9, 0, 7); ctx.strokeStyle = 'rgba(245,158,11,0.5)'; ctx.lineWidth = 2; ctx.stroke();
+                }
+                if (e < 1) requestAnimationFrame(frame);
+            }
+            requestAnimationFrame(frame);
+        }
+
+        // ═══ Ask MSA copilot ═══
+        let chatHistory = [], chatBusy = false;
+        function addChatMsg(kind, html) {
+            const log = document.getElementById('chat-log');
+            log.classList.remove('hidden');
+            const d = document.createElement('div');
+            d.dir = 'auto';
+            d.className = kind === 'user'
+                ? 'bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-gray-200 max-w-[85%]'
+                : kind === 'err'
+                    ? 'bg-bear/10 border border-bear/30 rounded-lg px-4 py-2.5 text-sm text-bear max-w-[85%] ml-auto'
+                    : 'bg-bull/5 border border-bull/20 rounded-lg px-4 py-2.5 text-sm text-gray-200 max-w-[85%] ml-auto';
+            d.innerHTML = html;
+            log.appendChild(d);
+            log.scrollTop = log.scrollHeight;
+            return d;
+        }
+        async function sendChat(text) {
+            text = (text || '').trim();
+            if (!text || chatBusy) return;
+            chatBusy = true;
+            const sendBtn = document.getElementById('chat-send');
+            sendBtn.disabled = true; sendBtn.classList.add('opacity-50');
+            document.getElementById('chat-input').value = '';
+            addChatMsg('user', escHtml(text));
+            const typing = addChatMsg('bot', '<span class="font-mono text-gray-500 text-xs">⚙ calling live tools…</span>');
+            try {
+                const r = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text, history: chatHistory }),
+                });
+                typing.remove();
+                if (!r.ok) {
+                    const err = await r.json().catch(() => ({}));
+                    addChatMsg('err', 'Copilot unavailable: ' + escHtml(err.detail || `HTTP ${r.status}`));
+                    return;
+                }
+                const d = await r.json();
+                const chips = [
+                    ...d.tools_used.map(t => `<span class="text-[9px] font-mono px-2 py-0.5 rounded bg-bull/10 text-bull">⚙ ${escHtml(t)}</span>`),
+                    ...d.tool_failures.map(t => `<span class="text-[9px] font-mono px-2 py-0.5 rounded bg-bear/10 text-bear">✕ ${escHtml(t)} failed</span>`),
+                    ...d.sources.map(s => `<span class="text-[9px] font-mono px-2 py-0.5 rounded bg-white/5 text-gray-400">${escHtml(s)}</span>`),
+                ].join(' ');
+                addChatMsg('bot', `<div class="leading-relaxed whitespace-pre-wrap">${escHtml(d.reply)}</div>` +
+                    (chips ? `<div class="flex flex-wrap gap-1.5 mt-2.5 pt-2 border-t border-white/5">${chips}</div>` : ''));
+                chatHistory.push({ role: 'user', content: text }, { role: 'assistant', content: d.reply });
+                chatHistory = chatHistory.slice(-8);
+            } catch (e) {
+                typing.remove();
+                addChatMsg('err', 'Network error — check the connection and retry.');
+            } finally {
+                chatBusy = false;
+                sendBtn.disabled = false; sendBtn.classList.remove('opacity-50');
+            }
+        }
+        document.getElementById('chat-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            sendChat(document.getElementById('chat-input').value);
+        });
+        document.querySelectorAll('#chat-suggestions button').forEach(b =>
+            b.addEventListener('click', () => sendChat(b.textContent.trim())));
+
+        // restore saved risk profile on the segmented control
+        (function restoreProfile() {
+            document.querySelectorAll('#profile-seg button').forEach(b => {
+                b.className = b.dataset.p === ql.profile
+                    ? 'px-2 py-1 bg-bull/15 text-bull font-bold'
+                    : 'px-2 py-1 text-gray-500 hover:text-white transition';
+            });
+        })();
 
         function initChart(data) {
             if (currentChart) {

@@ -43,23 +43,21 @@ Interactive docs at `/docs`.
 
 ## Frontend Pages
 
-| Page | Language | What it is |
-|------|----------|-----------|
-| `index.html` | العربية (RTL) | Clean product landing — live API health, module grid with honest live/beta tags |
-| `terminal.html` | العربية (RTL) | **Flagship quant terminal** — copilot chat, composite gauge + score attribution bars, Shariah badge, position sizing, Monte Carlo fan chart, walk-forward backtest, halal frontier, 9-module strip, FinBERT news |
-| `dashboard.html` | English | Classic terminal (unchanged, still fully functional) |
-| `compare.html` | English | Side-by-side two-ticker comparison (unchanged) |
+| Page | What it is |
+|------|-----------|
+| `index.html` | Landing page (animated candlestick hero, live ticker belt, API health stats) |
+| `dashboard.html` | **Analysis terminal** — everything from v3 (gauges, price chart, SG trend, Z-Score, inference weights, FinBERT news, GPT card) **plus the new Quant Lab**: Shariah screen (beta), Monte Carlo fan chart with horizon/target controls, position sizing with risk-profile switch and formula toggle, walk-forward backtest with equity curves, halal portfolio optimizer (beta), and the **Ask MSA** Arabic copilot chat |
+| `compare.html` | Two-ticker head-to-head — all v3 tug-of-war rows and radar **plus a Quant Lab section**: Shariah status, P(touch target), VaR/CVaR 95%, volatility, position size, stop loss, backtest hit rate / Sharpe / max drawdown / Brier for both tickers |
 
 Frontend niceties:
-- `terminal.html?ticker=AAPL` deep-links an analysis.
-- `terminal.html?record=1` hides nav/footer chrome for clean 16:9 screen recording.
+- `dashboard.html?ticker=AAPL` and `compare.html?a=AAPL&b=MSFT` deep-link analyses.
 - `?api=http://localhost:7860` points any page at a local backend.
-- Risk profile persists in `localStorage` and re-calibrates position sizing, signal thresholds, and the optimizer live.
+- The risk profile (SAFE / BAL / AGGR) persists in `localStorage` and re-calibrates position sizing and the optimizer live.
 
 ## Architecture
 
 ```
-User (Arabic) ──► terminal.html ──► GET /analyze ─┬─ yfinance OHLCV/news/analysts/targets
+User ──► dashboard.html ─────────► GET /analyze ─┬─ yfinance OHLCV/news/analysts/targets
        │                                          ├─ CNN Fear & Greed
        │                                          ├─ FinBERT (HF Inference API)
        │                                          └─ GPT-4o hardline-quant verdict
@@ -85,7 +83,7 @@ All fetches run concurrently (`asyncio.gather`); OHLCV history is shared across 
 | NLP | ProsusAI/finbert via HF Inference API |
 | AI agent | OpenAI GPT-4o — strict JSON verdict + tool-calling copilot (temperature 0.2–0.3) |
 | Caching | cachetools TTLCache (analysis + raw history, 5 min) |
-| Frontend | Hand-rolled canvas charts (fan chart, equity curves, frontier), SVG gauges, IBM Plex Sans Arabic, RTL-first CSS — no chart libraries on the new pages |
+| Frontend | Tailwind CSS, Chart.js (price/radar), hand-rolled canvas for the new fan chart / equity curves / frontier, SVG gauges |
 | Deployment | Docker on Hugging Face Spaces (API) · Vercel / GitHub Pages (static frontend) |
 
 ## Run Locally
@@ -103,7 +101,7 @@ HF_API_TOKEN=your_hf_token_here  # optional: higher FinBERT rate limits
 ```bash
 python app.py                    # API on http://localhost:7860 — docs at /docs
 python -m http.server 8000       # serve the frontend
-# open http://localhost:8000/terminal.html?api=http://localhost:7860
+# open http://localhost:8000/dashboard.html?api=http://localhost:7860&ticker=AAPL
 ```
 
 ## Deploy to Hugging Face Spaces
@@ -123,4 +121,4 @@ python -m http.server 8000       # serve the frontend
 
 ## Demo
 
-See [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md) for the 30-second Arabic hero-flow walkthrough (use `terminal.html?record=1`).
+See [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md) for the 30-second Arabic hero-flow walkthrough on `dashboard.html`.
