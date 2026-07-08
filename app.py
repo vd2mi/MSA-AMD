@@ -10,6 +10,7 @@ import json
 import logging
 import math
 import os
+import re
 import time
 from datetime import datetime, timezone
 from typing import Any
@@ -29,6 +30,8 @@ load_dotenv()
 
 OPENAI_API_KEY: str = os.environ.get("OPENAI_API_KEY", "")
 HF_API_TOKEN: str = os.environ.get("HF_API_TOKEN", "")
+ZOYA_API_KEY: str = os.environ.get("ZOYA_API_KEY", "")
+ZOYA_GRAPHQL_URL = "https://sandbox-api.zoya.finance/graphql"
 CACHE_TTL_SECONDS: int = 300
 FINBERT_URL = "https://api-inference.huggingface.co/models/ProsusAI/finbert"
 
@@ -693,17 +696,48 @@ def calculate_inference_weights(
 def _yf_fetch_analyst_ratings(ticker: str) -> AnalystRating:
     try:
         stock = yf.Ticker(ticker.upper())
-        rec = stock.recommendations
-        if rec is None or rec.empty:
-            return AnalystRating()
 
-        latest = rec.iloc[-1]
-        sb = int(latest.get("strongBuy", 0))
-        b = int(latest.get("buy", 0))
-        h = int(latest.get("hold", 0))
-        s = int(latest.get("sell", 0))
-        ss = int(latest.get("strongSell", 0))
+        rec = None
+        for attr in ("recommendations_summary", "recommendations"):
+            try:
+                df = getattr(stock, attr)
+                if df is not None and not df.empty:
+                    rec = df
+                    break
+            except Exception as exc:
+                logger.warning("Analyst %s fetch failed for %s: %s", attr, ticker, exc)
+
+        sb = b = h = s = ss = 0
+        if rec is not None:
+            # modern yfinance returns rows for periods 0m, -1m, -2m, -3m —
+            # the CURRENT month is '0m' (first row), not iloc[-1]
+            latest = rec.iloc[0]
+            if "period" in rec.columns and (rec["period"] == "0m").any():
+                latest = rec[rec["period"] == "0m"].iloc[0]
+            sb = int(latest.get("strongBuy", 0) or 0)
+            b = int(latest.get("buy", 0) or 0)
+            h = int(latest.get("hold", 0) or 0)
+            s = int(latest.get("sell", 0) or 0)
+            ss = int(latest.get("strongSell", 0) or 0)
         total = sb + b + h + s + ss
+
+        if total == 0:
+            # fallback: consensus fields from the quote summary
+            try:
+                info = stock.info or {}
+            except Exception:
+                info = {}
+            n = int(info.get("numberOfAnalystOpinions") or 0)
+            mean = info.get("recommendationMean")  # 1 = Strong Buy … 5 = Strong Sell
+            key = (info.get("recommendationKey") or "").replace("_", " ").title().strip()
+            if n > 0 and mean:
+                a_score = max(0, min(100, int(((5 - float(mean)) / 4) * 100)))
+                return AnalystRating(
+                    total=n,
+                    recommendation=key or None,
+                    score=a_score,
+                )
+            return AnalystRating()
 
         if total == 0:
             label = "No Data"
@@ -737,28 +771,73 @@ def _yf_fetch_analyst_ratings(ticker: str) -> AnalystRating:
 def _yf_fetch_price_target(ticker: str) -> PriceTarget:
     try:
         stock = yf.Ticker(ticker.upper())
-        info = stock.info or {}
-        
+
+        # 1) dedicated analyst-targets endpoint (most reliable on recent yfinance)
+        targets: dict[str, Any] = {}
+        try:
+            t = stock.analyst_price_targets
+            if isinstance(t, dict):
+                targets = t
+        except Exception as exc:
+            logger.warning("analyst_price_targets failed for %s: %s", ticker, exc)
+
+        # 2) quote summary as secondary source
+        info: dict[str, Any] = {}
+        try:
+            info = stock.info or {}
+        except Exception as exc:
+            logger.warning("info fetch failed for %s: %s", ticker, exc)
+
         current = (
-            info.get("currentPrice") 
-            or info.get("regularMarketPrice") 
+            targets.get("current")
+            or info.get("currentPrice")
+            or info.get("regularMarketPrice")
             or info.get("previousClose")
         )
-        
         daily_chg = info.get("regularMarketChange")
         daily_chg_pct = info.get("regularMarketChangePercent")
-        
+
+        # 3) fast_info for live price / previous close
+        if current is None or daily_chg_pct is None:
+            try:
+                fi = stock.fast_info
+                last = getattr(fi, "last_price", None)
+                prev = getattr(fi, "previous_close", None)
+                if current is None and last:
+                    current = float(last)
+                if daily_chg_pct is None and last and prev:
+                    daily_chg = float(last) - float(prev)
+                    daily_chg_pct = (daily_chg / float(prev)) * 100
+            except Exception as exc:
+                logger.warning("fast_info failed for %s: %s", ticker, exc)
+
+        # 4) last resort: compute from recent daily closes
+        if current is None or daily_chg_pct is None:
+            try:
+                hist = stock.history(period="5d")
+                closes = hist["Close"].dropna()
+                if len(closes) >= 1 and current is None:
+                    current = float(closes.iloc[-1])
+                if len(closes) >= 2 and daily_chg_pct is None:
+                    daily_chg = float(closes.iloc[-1]) - float(closes.iloc[-2])
+                    daily_chg_pct = daily_chg / float(closes.iloc[-2]) * 100
+            except Exception as exc:
+                logger.warning("history fallback failed for %s: %s", ticker, exc)
+
         target_mean = (
-            info.get("targetMeanPrice")
+            targets.get("mean")
+            or targets.get("median")
+            or info.get("targetMeanPrice")
             or info.get("targetMedianPrice")
-            or info.get("recommendationMean")
         )
         target_high = (
-            info.get("targetHighPrice")
+            targets.get("high")
+            or info.get("targetHighPrice")
             or info.get("targetMaxPrice")
         )
         target_low = (
-            info.get("targetLowPrice")
+            targets.get("low")
+            or info.get("targetLowPrice")
             or info.get("targetMinPrice")
         )
 
@@ -1644,6 +1723,8 @@ class ShariahScreenResult(BaseModel):
     non_compliant_income_pct: float | None = Field(None, description="null = fundamentals feed pending (beta)")
     purification_rate_pct: float | None = Field(None, description="نسبة التطهير — null until income feed is wired")
     threshold_pct: float = AAOIFI_THRESHOLD
+    zoya_status: str | None = Field(None, description="Raw Zoya basic-compliance status (COMPLIANT / NON_COMPLIANT / QUESTIONABLE)")
+    zoya_report_date: str | None = Field(None, description="Date of the Zoya compliance report")
     beta: bool = True
     data_source: str = "Yahoo Finance balance sheet (annual) — income-segmentation feed pending"
     notes_ar: str
@@ -1740,9 +1821,97 @@ def _yf_shariah_screen(ticker: str) -> ShariahScreenResult:
     )
 
 
+# Zoya — professional Shariah screening provider (basic compliance API).
+# Primary source for the verdict; the AAOIFI ratio detail from Yahoo stays
+# as supporting evidence. Falls back to the ratio screen if Zoya is
+# unavailable or doesn't cover the symbol.
+_zoya_cache: TTLCache[str, dict[str, Any]] = TTLCache(maxsize=512, ttl=3600)
+_ZOYA_TICKER_RE = re.compile(r"^[A-Z0-9.\-]{1,12}$")
+
+
+async def _zoya_basic_compliance(ticker: str) -> dict[str, Any] | None:
+    if not ZOYA_API_KEY or not _ZOYA_TICKER_RE.match(ticker):
+        return None
+    if ticker in _zoya_cache:
+        return _zoya_cache[ticker]
+
+    payload = {
+        "query": (
+            "query getReport { basicCompliance { report(symbol: \"%s\") "
+            "{ exchange name reportDate status symbol } } }" % ticker
+        )
+    }
+    # Zoya's GraphQL gateway accepts the API key via Authorization; try the
+    # common header conventions so a key format change doesn't break us.
+    header_variants = (
+        {"Authorization": ZOYA_API_KEY},
+        {"x-api-key": ZOYA_API_KEY},
+        {"Authorization": f"Bearer {ZOYA_API_KEY}"},
+    )
+    for headers in header_variants:
+        try:
+            async with httpx.AsyncClient(timeout=12) as client:
+                resp = await client.post(
+                    ZOYA_GRAPHQL_URL,
+                    json=payload,
+                    headers={**headers, "Content-Type": "application/json"},
+                )
+            if resp.status_code in (401, 403):
+                continue
+            resp.raise_for_status()
+            data = resp.json()
+
+            errors = data.get("errors") or []
+            if errors:
+                if any("unauthorized" in str(e).lower() for e in errors):
+                    continue  # wrong header convention — try the next one
+                logger.warning("Zoya errors for %s: %s", ticker, errors)
+                return None
+
+            report = ((data.get("data") or {}).get("basicCompliance") or {}).get("report")
+            if report and report.get("status"):
+                _zoya_cache[ticker] = report
+                return report
+            return None
+        except Exception as exc:
+            logger.warning("Zoya request failed for %s: %s", ticker, exc)
+            return None
+    logger.warning("Zoya auth failed for all header conventions")
+    return None
+
+
+_ZOYA_STATUS_MAP = {
+    "COMPLIANT": ("compliant", "حلال"),
+    "NON_COMPLIANT": ("non_compliant", "غير متوافق"),
+    "QUESTIONABLE": ("mixed", "مختلط"),
+}
+
+
 @app.get("/shariah", response_model=ShariahScreenResult)
 async def shariah_screen(ticker: str = Query(..., min_length=1, max_length=12)):
-    return await asyncio.to_thread(_yf_shariah_screen, ticker.upper().strip())
+    t = ticker.upper().strip()
+    zoya, result = await asyncio.gather(
+        _zoya_basic_compliance(t),
+        asyncio.to_thread(_yf_shariah_screen, t),
+    )
+    if zoya:
+        status_key = str(zoya.get("status", "")).upper()
+        mapped = _ZOYA_STATUS_MAP.get(status_key)
+        if mapped:
+            result.status, result.status_ar = mapped
+        result.zoya_status = status_key
+        result.zoya_report_date = (zoya.get("reportDate") or "")[:10] or None
+        result.company = result.company or zoya.get("name")
+        result.beta = False  # verdict comes from a professional screening provider
+        result.data_source = (
+            f"Zoya basic compliance (report {result.zoya_report_date or 'n/a'}) "
+            "· ratio detail: Yahoo Finance balance sheet"
+        )
+        result.notes_ar = (
+            "الحكم الشرعي من Zoya (مزوّد فحص شرعي متخصص). "
+            "النسب المعروضة من بيانات Yahoo للاطلاع والمقارنة."
+        )
+    return result
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -1753,14 +1922,14 @@ async def shariah_screen(ticker: str = Query(..., min_length=1, max_length=12)):
 # (SPUS / HLAL). TODO(data): replace with the live /shariah screen output
 # over a Tadawul + US universe once the fundamentals feed is wired.
 HALAL_DEMO_BASKET: list[tuple[str, str]] = [
-    ("AAPL", "أبل"),
-    ("MSFT", "مايكروسوفت"),
-    ("NVDA", "إنفيديا"),
-    ("GOOGL", "ألفابت"),
-    ("TSLA", "تسلا"),
-    ("XOM", "إكسون موبيل"),
-    ("PG", "بروكتر آند غامبل"),
-    ("JNJ", "جونسون آند جونسون"),
+    ("AAPL", "Apple"),
+    ("MSFT", "Microsoft"),
+    ("NVDA", "NVIDIA"),
+    ("GOOGL", "Alphabet"),
+    ("TSLA", "Tesla"),
+    ("XOM", "Exxon Mobil"),
+    ("PG", "Procter & Gamble"),
+    ("JNJ", "Johnson & Johnson"),
 ]
 
 
@@ -1778,7 +1947,7 @@ class PortfolioAllocation(BaseModel):
 
 class OptimizeResult(BaseModel):
     basket: list[str]
-    basket_ar: dict[str, str]
+    basket_names: dict[str, str] = Field(..., description="Ticker → company name")
     risk_profile: str
     frontier: list[FrontierPoint]
     cloud: list[FrontierPoint] = Field(default_factory=list, description="Random feasible portfolios (visual)")
@@ -1885,7 +2054,7 @@ async def optimize_portfolio(
 
     return OptimizeResult(
         basket=tickers,
-        basket_ar={t: ar for t, ar in HALAL_DEMO_BASKET},
+        basket_names=dict(HALAL_DEMO_BASKET),
         risk_profile=profile,
         frontier=[
             FrontierPoint(risk=round(float(s["p_vols"][i]), 4), ret=round(float(s["p_rets"][i]), 4))

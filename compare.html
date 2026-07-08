@@ -136,7 +136,7 @@
             <div class="text-4xl font-black text-white tracking-tighter" id="loader-ticker">-- vs --</div>
             <div class="text-[10px] text-bull mt-2 font-mono flex items-center justify-center gap-2">
                 <span class="blink w-2 h-2 bg-bull rounded-full"></span>
-                <span>COMPARING NEURAL SIGNALS</span>
+                <span>RUNNING DUAL ANALYSIS</span>
             </div>
         </div>
     </div>
@@ -149,15 +149,15 @@
             </div>
             <nav class="mt-8 space-y-2 px-3">
                 <a id="terminal-link" href="dashboard.html" class="flex items-center px-4 py-3 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg transition">
-                    <span class="text-xl">📊</span>
+                    <svg class="w-5 h-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-5 3 3 5-7"/></svg>
                     <span class="ml-3 text-sm font-bold hidden lg:block">Terminal</span>
                 </a>
                 <a href="#" class="flex items-center px-4 py-3 bg-white/5 text-white rounded-lg border border-white/5 transition">
-                    <span class="text-xl">⚔️</span>
+                    <svg class="w-5 h-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3L4 7l4 4"/><path d="M4 7h16"/><path d="M16 21l4-4-4-4"/><path d="M20 17H4"/></svg>
                     <span class="ml-3 text-sm font-bold hidden lg:block">Compare</span>
                 </a>
                 <a href="index.html" class="flex items-center px-4 py-3 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg transition">
-                    <span class="text-xl">🏠</span>
+                    <svg class="w-5 h-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
                     <span class="ml-3 text-sm font-bold hidden lg:block">Home</span>
                 </a>
             </nav>
@@ -184,7 +184,7 @@
                         class="w-full bg-panel border border-border rounded-lg px-4 py-2.5 text-sm font-mono text-white placeholder-gray-600 focus:outline-none focus:border-[#6366f1]/50 uppercase tracking-widest">
                 </div>
                 <button type="submit" id="compare-btn" class="bg-bull text-black px-6 py-2.5 rounded-lg font-bold text-sm uppercase tracking-wider hover:shadow-[0_0_20px_rgba(0,255,136,0.3)] transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
-                    ⚔️ Compare
+                    Compare
                 </button>
             </form>
             <div class="flex gap-2">
@@ -197,7 +197,7 @@
         <div class="flex-1 overflow-y-auto p-6" id="content-area">
 
             <div id="welcome-state" class="flex flex-col items-center justify-center py-32 text-center">
-                <div class="text-6xl mb-6">⚔️</div>
+                <svg class="w-14 h-14 mb-6 text-gray-600 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 3L4 7l4 4"/><path d="M4 7h16"/><path d="M16 21l4-4-4-4"/><path d="M20 17H4"/></svg>
                 <h2 class="text-2xl font-bold text-white mb-3">Head-to-Head Comparison</h2>
                 <p class="text-gray-500 max-w-md">Enter two tickers above to compare them side by side across every metric. We'll run full analysis on both and declare a winner.</p>
                 <div class="flex gap-3 mt-8">
@@ -283,26 +283,26 @@
                 <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay:0.45s">
                     <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
                         <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Quant Lab — Head to Head</h3>
-                        <span class="text-[9px] font-mono font-black px-2 py-0.5 rounded-full bg-warn/15 text-warn border border-warn/30">MONTE CARLO · SHARIAH (BETA) · SIZING · BACKTEST</span>
+                        <span class="text-[9px] font-mono font-black px-2 py-0.5 rounded-full bg-warn/15 text-warn border border-warn/30">MONTE CARLO · SHARIAH · SIZING · BACKTEST</span>
                     </div>
                     <div id="quant-rows" class="space-y-2">
                         <div class="flex items-center justify-center py-10"><div class="spinner"></div></div>
                     </div>
                     <div class="mt-3 pt-2 border-t border-white/5 text-[9px] font-mono text-gray-600 leading-relaxed">
                         Monte Carlo: 10,000 GBM paths on each ticker's real 1y returns, 63 trading days, target = analyst mean (or +10%).
-                        Shariah screen &amp; income data are BETA (تجريبي). Backtest replays the technical pillar only — full-composite validation is a target.
+                        Shariah verdict via Zoya basic compliance when available (Yahoo ratio detail is indicative; income data pending). Backtest replays the technical pillar only — full-composite validation is a target.
                     </div>
                 </div>
 
                 <!-- AI Verdicts -->
                 <div class="grid grid-cols-2 gap-6 animate-fade-in" style="animation-delay:0.5s">
                     <div class="glass-box p-6 rounded-xl border-l-2 border-l-bull">
-                        <h3 class="text-xs font-bold text-bull uppercase tracking-widest mb-3">🤖 AI on <span id="ai-label-a">--</span></h3>
+                        <h3 class="text-xs font-bold text-bull uppercase tracking-widest mb-3">GPT-4o on <span id="ai-label-a">--</span></h3>
                         <h4 class="text-base font-bold text-white mb-2" id="ai-action-a">--</h4>
                         <p class="text-sm text-gray-400 leading-relaxed" id="ai-reason-a">--</p>
                     </div>
                     <div class="glass-box p-6 rounded-xl border-l-2 border-l-indigo-500">
-                        <h3 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3">🤖 AI on <span id="ai-label-b">--</span></h3>
+                        <h3 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3">GPT-4o on <span id="ai-label-b">--</span></h3>
                         <h4 class="text-base font-bold text-white mb-2" id="ai-action-b">--</h4>
                         <p class="text-sm text-gray-400 leading-relaxed" id="ai-reason-b">--</p>
                     </div>
@@ -489,7 +489,7 @@
             if (action.includes('BUY')) { word = 'BUY'; color = 'bg-bull/20 text-bull border-bull/30'; }
             else if (action.includes('SELL')) { word = 'SELL'; color = 'bg-bear/20 text-bear border-bear/30'; }
             else if (action.includes('HOLD')) { word = 'HOLD'; color = 'bg-blue-500/20 text-blue-400 border-blue-500/30'; }
-            return `<span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-black font-mono ${color}">🤖 ${word} · ${gpt.confidence_score}%</span>`;
+            return `<span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-black font-mono ${color}">GPT-4o ${word} · ${gpt.confidence_score}%</span>`;
         }
 
         function makeRow(label, valA, valB, pctA, pctB, delay, winSide) {
@@ -768,15 +768,15 @@
                 // Looking to Buy
                 const buyA = actA === 'BUY', buyB = actB === 'BUY';
                 if (buyA && !buyB) {
-                    goals.push({ icon: '🟢', title: 'Looking to Buy?', pick: a, color: 'bull', reason: `AI recommends buying ${a}. ${b} is rated ${actB} — not a buy right now.` });
+                    goals.push({ title: 'Looking to Buy?', pick: a, color: 'bull', reason: `AI recommends buying ${a}. ${b} is rated ${actB} — not a buy right now.` });
                 } else if (buyB && !buyA) {
-                    goals.push({ icon: '🟢', title: 'Looking to Buy?', pick: b, color: 'indigo-400', reason: `AI recommends buying ${b}. ${a} is rated ${actA} — not a buy right now.` });
+                    goals.push({ title: 'Looking to Buy?', pick: b, color: 'indigo-400', reason: `AI recommends buying ${b}. ${a} is rated ${actA} — not a buy right now.` });
                 } else if (buyA && buyB) {
                     const better = (gptA.confidence_score || 0) >= (gptB.confidence_score || 0) ? a : b;
                     const betterCol = better === a ? 'bull' : 'indigo-400';
-                    goals.push({ icon: '🟢', title: 'Looking to Buy?', pick: better, color: betterCol, reason: `Both are rated BUY. ${better} edges it with ${better === a ? gptA.confidence_score : gptB.confidence_score}% AI confidence.` });
+                    goals.push({ title: 'Looking to Buy?', pick: better, color: betterCol, reason: `Both are rated BUY. ${better} edges it with ${better === a ? gptA.confidence_score : gptB.confidence_score}% AI confidence.` });
                 } else {
-                    goals.push({ icon: '🟢', title: 'Looking to Buy?', pick: 'Neither', color: 'warn', reason: `Neither is a buy right now. ${a} is ${actA}, ${b} is ${actB}. Consider waiting.` });
+                    goals.push({ title: 'Looking to Buy?', pick: 'Neither', color: 'warn', reason: `Neither is a buy right now. ${a} is ${actA}, ${b} is ${actB}. Consider waiting.` });
                 }
 
                 // Better Technicals
@@ -784,7 +784,7 @@
                 const techWinCol = techWinner === a ? 'bull' : 'indigo-400';
                 const techWinScore = techWinner === a ? techA.score : techB.score;
                 const techLoseScore = techWinner === a ? techB.score : techA.score;
-                goals.push({ icon: '📊', title: 'Stronger Technicals?', pick: techWinner, color: techWinCol, reason: `Technical score ${techWinScore} vs ${techLoseScore}. RSI, MACD, and momentum favor ${techWinner}.` });
+                goals.push({ title: 'Stronger Technicals?', pick: techWinner, color: techWinCol, reason: `Technical score ${techWinScore} vs ${techLoseScore}. RSI, MACD, and momentum favor ${techWinner}.` });
 
                 // Smart Money Flow
                 const accA = obvA.divergence === 'Accumulation';
@@ -792,28 +792,28 @@
                 const distA = obvA.divergence === 'Distribution';
                 const distB = obvB.divergence === 'Distribution';
                 if (accA && !accB) {
-                    goals.push({ icon: '🐋', title: 'Where\'s Smart Money?', pick: a, color: 'bull', reason: `OBV shows accumulation on ${a} — institutions are quietly buying. ${b} shows ${obvB.divergence || 'no clear signal'}.` });
+                    goals.push({ title: 'Institutional Flow?', pick: a, color: 'bull', reason: `OBV shows accumulation on ${a} — institutions are quietly buying. ${b} shows ${obvB.divergence || 'no clear signal'}.` });
                 } else if (accB && !accA) {
-                    goals.push({ icon: '🐋', title: 'Where\'s Smart Money?', pick: b, color: 'indigo-400', reason: `OBV shows accumulation on ${b} — institutions are quietly buying. ${a} shows ${obvA.divergence || 'no clear signal'}.` });
+                    goals.push({ title: 'Institutional Flow?', pick: b, color: 'indigo-400', reason: `OBV shows accumulation on ${b} — institutions are quietly buying. ${a} shows ${obvA.divergence || 'no clear signal'}.` });
                 } else if (distA && !distB) {
-                    goals.push({ icon: '🐋', title: 'Where\'s Smart Money?', pick: b, color: 'indigo-400', reason: `⚠️ ${a} shows distribution — smart money may be exiting. ${b} looks safer.` });
+                    goals.push({ title: 'Institutional Flow?', pick: b, color: 'indigo-400', reason: `⚠️ ${a} shows distribution — smart money may be exiting. ${b} looks safer.` });
                 } else if (distB && !distA) {
-                    goals.push({ icon: '🐋', title: 'Where\'s Smart Money?', pick: a, color: 'bull', reason: `⚠️ ${b} shows distribution — smart money may be exiting. ${a} looks safer.` });
+                    goals.push({ title: 'Institutional Flow?', pick: a, color: 'bull', reason: `⚠️ ${b} shows distribution — smart money may be exiting. ${a} looks safer.` });
                 } else {
-                    goals.push({ icon: '🐋', title: 'Where\'s Smart Money?', pick: 'Tied', color: 'gray-400', reason: `Both show ${obvA.divergence || 'no clear signal'}. No clear institutional edge.` });
+                    goals.push({ title: 'Institutional Flow?', pick: 'Tied', color: 'gray-400', reason: `Both show ${obvA.divergence || 'no clear signal'}. No clear institutional edge.` });
                 }
 
                 // More Upside
                 const upA = ptA.upside_pct || 0, upB = ptB.upside_pct || 0;
                 const upWinner = upA >= upB ? a : b;
                 const upWinCol = upWinner === a ? 'bull' : 'indigo-400';
-                goals.push({ icon: '🎯', title: 'More Upside Potential?', pick: upWinner, color: upWinCol, reason: `Analysts see ${Math.max(upA, upB).toFixed(1)}% upside on ${upWinner} vs ${Math.min(upA, upB).toFixed(1)}% on the other.` });
+                goals.push({ title: 'More Upside Potential?', pick: upWinner, color: upWinCol, reason: `Analysts see ${Math.max(upA, upB).toFixed(1)}% upside on ${upWinner} vs ${Math.min(upA, upB).toFixed(1)}% on the other.` });
 
                 // Quant Composite
                 const compA = iwA.composite_score || 50, compB = iwB.composite_score || 50;
                 const compWinner = compA >= compB ? a : b;
                 const compWinCol = compWinner === a ? 'bull' : 'indigo-400';
-                goals.push({ icon: '🧮', title: 'Stronger Quant Signal?', pick: compWinner, color: compWinCol, reason: `Inference composite ${Math.max(compA, compB).toFixed(1)} vs ${Math.min(compA, compB).toFixed(1)} (35% tech + 25% sentiment + 20% analyst + 20% volume).` });
+                goals.push({ title: 'Stronger Quant Signal?', pick: compWinner, color: compWinCol, reason: `Inference composite ${Math.max(compA, compB).toFixed(1)} vs ${Math.min(compA, compB).toFixed(1)} (35% tech + 25% sentiment + 20% analyst + 20% volume).` });
 
                 // FinBERT Sentiment
                 const fbA = nsA.avg_score || 0.5, fbB = nsB.avg_score || 0.5;
@@ -823,7 +823,7 @@
                     const fbLoser = fbWinner === a ? b : a;
                     const fbWinLabel = fbWinner === a ? nsA.label : nsB.label;
                     const fbLoseLabel = fbWinner === a ? nsB.label : nsA.label;
-                    goals.push({ icon: '🧠', title: 'Better News Sentiment?', pick: fbWinner, color: fbWinCol, reason: `FinBERT reads ${fbWinner} headlines as ${fbWinLabel}. ${fbLoser} reads as ${fbLoseLabel}.` });
+                    goals.push({ title: 'Better News Sentiment?', pick: fbWinner, color: fbWinCol, reason: `FinBERT reads ${fbWinner} headlines as ${fbWinLabel}. ${fbLoser} reads as ${fbLoseLabel}.` });
                 }
 
                 // Render goal cards
@@ -831,7 +831,7 @@
                 goalCards.innerHTML = goals.map(g => `
                     <div class="bg-black/30 rounded-lg p-4 border border-white/5">
                         <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-bold text-white">${g.icon} ${g.title}</span>
+                            <span class="text-sm font-bold text-white">${g.title}</span>
                             <span class="text-sm font-black font-mono text-${g.color}">${g.pick}</span>
                         </div>
                         <p class="text-xs text-gray-500 font-mono leading-relaxed">${g.reason}</p>
@@ -916,8 +916,9 @@
             const shTxt = (s) => {
                 if (!s) return { txt: NA, cls: 'text-gray-500' };
                 const cls = s.status === 'compliant' ? 'text-bull font-bold' : s.status === 'non_compliant' ? 'text-bear font-bold' : 'text-warn font-bold';
-                const icon = s.status === 'compliant' ? '✓' : s.status === 'non_compliant' ? '✕' : '◐';
-                return { txt: `${icon} ${s.status_ar} <span class="text-[9px] text-gray-500">BETA</span>`, cls };
+                const en = s.status === 'compliant' ? 'COMPLIANT' : s.status === 'non_compliant' ? 'NON-COMPLIANT' : s.status === 'unknown' ? 'UNKNOWN' : 'MIXED';
+                const tag = s.zoya_status ? 'ZOYA' : 'BETA';
+                return { txt: `${en} <span class="text-[9px] text-gray-500">${tag}</span>`, cls };
             };
             const sA = shTxt(shA), sB = shTxt(shB);
             rows += qRowText('Shariah Status', sA.txt, sB.txt, sA.cls, sB.cls);

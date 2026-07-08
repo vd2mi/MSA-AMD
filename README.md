@@ -20,7 +20,7 @@ Credibility is the product. Every module is labeled by what it actually is:
 | Explainability ("لماذا هذه التوصية") | ✅ **Live** | Client-side decomposition of the existing composite into pillar contributions |
 | Position sizing (`/position-size`) | ✅ **Live** | Volatility targeting + ¼ Kelly (capped) + 2×ATR stop; formulas shown on demand. p_win mapping from composite is calibration-beta |
 | Risk profiling (3-question KYC-lite) | ✅ **Live** | محافظ / متوازن / جريء — adjusts sizing, thresholds, and optimizer live |
-| Shariah screening (`/shariah`) | 🟡 **Beta — تجريبي / قيد المعايرة** | Real AAOIFI ratio math (debt/cash/receivables ÷ mcap ≤ 30%) from Yahoo balance sheets + business-activity filter. **TODO(data):** non-compliant-income % and purification rate need a segment-revenue feed (IdealRatings/Refinitiv) — returned as `null`, never faked |
+| Shariah screening (`/shariah`) | ✅ **Live via Zoya** (ratio detail beta) | Verdict from the **Zoya basic-compliance API** (professional Shariah screening; sandbox endpoint) with report date. AAOIFI ratio math from Yahoo balance sheets shown as supporting detail. Falls back to the ratio screen (beta-labeled) if Zoya is unavailable or doesn't cover the symbol. Non-compliant-income % / purification rate need Zoya's advanced report — returned as `null`, never faked |
 | Halal portfolio optimizer (`/optimize`) | 🟡 **Beta — demo basket** | Real Markowitz (no-short) on 1y returns of a clearly-labeled demo basket of US stocks held by Shariah ETFs (SPUS/HLAL). **TODO(data):** wire basket to the live Shariah screen over a Tadawul+US universe |
 | Backtest + calibration (`/backtest`) | 🟡 **Partial** | Real 2y walk-forward of the **technical pillar** (hit rate, Brier, Sharpe, max DD, equity curve). Full 4-pillar validation requires historical sentiment/analyst archives — labeled **«هدف التحقق»** (validation target), not achieved |
 
@@ -34,7 +34,7 @@ Saudi tickers are supported through Yahoo Finance's `.SR` suffix (e.g. `2222.SR`
 | `POST` | `/chat` | Arabic copilot — GPT-4o tool-calling over analyze / montecarlo / shariah / position-size / backtest. Body: `{"message": "أشتري أرامكو؟", "history": []}` |
 | `GET` | `/montecarlo?ticker=AAPL&horizon_days=63&target=250` | Seeded GBM, 10k paths: percentile cone (P05–P95), sample paths, VaR/CVaR 95%, P(reach target). Deterministic per ticker+day |
 | `GET` | `/position-size?ticker=AAPL&profile=balanced&score=71&capital=100000` | % of capital (vol targeting + capped ¼ Kelly), 2×ATR stop, formulas |
-| `GET` | `/shariah?ticker=AAPL` | AAOIFI-style screen → حلال / مختلط / غير متوافق (beta) |
+| `GET` | `/shariah?ticker=AAPL` | Shariah screen — verdict via Zoya basic compliance (+ AAOIFI ratio detail from Yahoo; ratio-only fallback is beta) |
 | `GET` | `/optimize?risk_profile=balanced` | Efficient frontier + optimal allocation on halal demo basket (beta) |
 | `GET` | `/backtest?ticker=AAPL&threshold=55` | 2y walk-forward technical-pillar signal vs buy & hold |
 | `GET` | `/health` · `/sma` · `/fear-greed` · `/news` · `DELETE /cache` | Utilities (unchanged) |
@@ -46,7 +46,7 @@ Interactive docs at `/docs`.
 | Page | What it is |
 |------|-----------|
 | `index.html` | Landing page (animated candlestick hero, live ticker belt, API health stats) |
-| `dashboard.html` | **Analysis terminal** — everything from v3 (gauges, price chart, SG trend, Z-Score, inference weights, FinBERT news, GPT card) **plus the new Quant Lab**: Shariah screen (beta), Monte Carlo fan chart with horizon/target controls, position sizing with risk-profile switch and formula toggle, walk-forward backtest with equity curves, halal portfolio optimizer (beta), and the **Ask MSA** Arabic copilot chat |
+| `dashboard.html` | **Analysis terminal** — everything from v3 (gauges, price chart, SG trend, Z-Score, inference weights, FinBERT news, GPT card) **plus the new Quant Lab**: Shariah screen (Zoya verdict + AAOIFI ratio detail), Monte Carlo fan chart with horizon/target controls, position sizing with risk-profile switch and formula toggle, walk-forward backtest with equity curves, halal portfolio optimizer (beta), and the **Ask MSA** Arabic copilot chat |
 | `compare.html` | Two-ticker head-to-head — all v3 tug-of-war rows and radar **plus a Quant Lab section**: Shariah status, P(touch target), VaR/CVaR 95%, volatility, position size, stop loss, backtest hit rate / Sharpe / max drawdown / Brier for both tickers |
 
 Frontend niceties:
@@ -66,7 +66,7 @@ User ──► dashboard.html ─────────► GET /analyze ─┬
        │                   (numbers only from tools)  position-size / backtest
        ├──► GET /montecarlo  (seeded GBM 10k paths — μ,σ from real returns)
        ├──► GET /position-size (vol targeting + ¼ Kelly + 2×ATR stop)
-       ├──► GET /shariah     (AAOIFI ratios — beta, income feed pending)
+       ├──► GET /shariah     (Zoya basic compliance → verdict; AAOIFI ratios as detail)
        ├──► GET /optimize    (Markowitz no-short on halal demo basket — beta)
        └──► GET /backtest    (2y walk-forward technical pillar)
 ```
@@ -96,6 +96,7 @@ pip install -r requirements.txt
 ```
 OPENAI_API_KEY=your_key_here     # required for GPT verdict + copilot
 HF_API_TOKEN=your_hf_token_here  # optional: higher FinBERT rate limits
+ZOYA_API_KEY=your_zoya_key_here  # optional: professional Shariah verdict via https://sandbox-api.zoya.finance/graphql
 ```
 
 ```bash
@@ -108,14 +109,14 @@ python -m http.server 8000       # serve the frontend
 
 1. Create a Space → SDK: **Docker**.
 2. Push this repo (Dockerfile, app.py, requirements.txt are the backend).
-3. Add `OPENAI_API_KEY` (and optionally `HF_API_TOKEN`) as Space Secrets.
+3. Add `OPENAI_API_KEY` (and optionally `HF_API_TOKEN`, `ZOYA_API_KEY`) as Space Secrets.
 4. The Space builds and serves on port **7860**. The static pages can be hosted anywhere (Vercel/GitHub Pages) — they point at the Space URL by default.
 
 ## Honesty Rules (enforced in code)
 
 - The copilot may only state numbers that appear in tool outputs; tool failures are reported, not papered over.
 - Monte Carlo is seeded per ticker+day → reproducible, and labeled as a probability distribution, not a forecast.
-- Shariah screen and optimizer carry a permanent **تجريبي** badge until their data feeds are wired; missing figures return `null` and render as «قيد الربط», never as fake numbers.
+- The Shariah verdict shows a **ZOYA** tag when it comes from Zoya's compliance API and a **BETA** tag when only the ratio fallback ran; missing figures (income %, purification) return `null` and render as PENDING, never as fake numbers.
 - Backtest reports its true scope (technical pillar) and labels full-composite validation **«هدف التحقق»**.
 - Nothing simulated is ever displayed as real.
 
