@@ -297,12 +297,12 @@
                 <!-- AI Verdicts -->
                 <div class="grid grid-cols-2 gap-6 animate-fade-in" style="animation-delay:0.5s">
                     <div class="glass-box p-6 rounded-xl border-l-2 border-l-bull">
-                        <h3 class="text-xs font-bold text-bull uppercase tracking-widest mb-3">GPT-4o on <span id="ai-label-a">--</span></h3>
+                        <h3 class="text-xs font-bold text-bull uppercase tracking-widest mb-3">Quant AI on <span id="ai-label-a">--</span></h3>
                         <h4 class="text-base font-bold text-white mb-2" id="ai-action-a">--</h4>
                         <p class="text-sm text-gray-400 leading-relaxed" id="ai-reason-a">--</p>
                     </div>
                     <div class="glass-box p-6 rounded-xl border-l-2 border-l-indigo-500">
-                        <h3 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3">GPT-4o on <span id="ai-label-b">--</span></h3>
+                        <h3 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3">Quant AI on <span id="ai-label-b">--</span></h3>
                         <h4 class="text-base font-bold text-white mb-2" id="ai-action-b">--</h4>
                         <p class="text-sm text-gray-400 leading-relaxed" id="ai-reason-b">--</p>
                     </div>
@@ -489,7 +489,7 @@
             if (action.includes('BUY')) { word = 'BUY'; color = 'bg-bull/20 text-bull border-bull/30'; }
             else if (action.includes('SELL')) { word = 'SELL'; color = 'bg-bear/20 text-bear border-bear/30'; }
             else if (action.includes('HOLD')) { word = 'HOLD'; color = 'bg-blue-500/20 text-blue-400 border-blue-500/30'; }
-            return `<span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-black font-mono ${color}">GPT-4o ${word} · ${gpt.confidence_score}%</span>`;
+            return `<span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-black font-mono ${color}">QUANT AI ${word} · ${gpt.confidence_score}%</span>`;
         }
 
         function makeRow(label, valA, valB, pctA, pctB, delay, winSide) {
