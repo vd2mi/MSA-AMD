@@ -151,6 +151,10 @@
                     <svg class="w-5 h-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3L4 7l4 4"/><path d="M4 7h16"/><path d="M16 21l4-4-4-4"/><path d="M20 17H4"/></svg>
                     <span class="ml-3 text-sm font-bold hidden lg:block">Compare</span>
                 </a>
+                <a href="favorites.html" class="flex items-center px-4 py-3 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg transition">
+                    <svg class="w-5 h-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <span class="ml-3 text-sm font-bold hidden lg:block">Favorites</span>
+                </a>
                 <a href="index.html" class="flex items-center px-4 py-3 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg transition">
                     <svg class="w-5 h-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
                     <span class="ml-3 text-sm font-bold hidden lg:block">Home</span>
@@ -183,7 +187,15 @@
                     <span id="search-spinner" class="spinner hidden"></span>
                 </button>
             </form>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="relative">
+                    <button id="customize-btn" class="text-xs font-mono px-3 py-1.5 glass-box rounded-lg text-gray-400 hover:text-bull hover:border-bull/30 transition">⚙ <span>Customize</span></button>
+                    <div id="customize-menu" class="hidden absolute right-0 top-full mt-2 w-64 bg-panel border border-border rounded-xl shadow-2xl z-[99] p-3 max-h-96 overflow-y-auto">
+                        <div class="text-[10px] font-mono text-gray-500 mb-2 leading-relaxed" id="customize-note">Display only — hiding widgets never changes the analysis or the final verdict.</div>
+                        <div id="customize-list" class="space-y-1"></div>
+                    </div>
+                </div>
+                <button id="lang-btn" class="text-xs font-mono px-3 py-1.5 glass-box rounded-lg text-gray-400 hover:text-bull hover:border-bull/30 transition font-bold">عربي</button>
                 <span class="w-2 h-2 rounded-full bg-bull animate-pulse" id="status-dot"></span>
                 <span class="text-xs font-mono text-gray-500" id="timestamp-display">WAITING FOR INPUT</span>
             </div>
@@ -248,6 +260,23 @@
                                     </div>
                                 </div>
                                 
+                                <div class="hidden lg:flex gap-3 items-start relative z-10">
+                                    <div class="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-center tooltip-bottom" id="range6m-box" data-tooltip="6-Month Range&#10;Highest and lowest intraday price&#10;over the last ~126 trading days.">
+                                        <div class="text-[9px] text-gray-500 font-mono uppercase tracking-widest mb-1" id="r6-label">6M RANGE</div>
+                                        <div class="text-xs font-mono font-bold text-bull" id="r6-high">--</div>
+                                        <div class="text-[8px] font-mono text-gray-600" id="r6-high-date">--</div>
+                                        <div class="text-xs font-mono font-bold text-bear mt-1" id="r6-low">--</div>
+                                        <div class="text-[8px] font-mono text-gray-600" id="r6-low-date">--</div>
+                                    </div>
+                                    <div class="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-center tooltip-bottom" id="deviation-box" data-tooltip="Price Deviation&#10;Today's move vs the stock's typical&#10;daily move (average over ~30 days).&#10;Also shows the last unusual move&#10;(> 1.5x the typical swing).">
+                                        <div class="text-[9px] text-gray-500 font-mono uppercase tracking-widest mb-1">DEVIATION</div>
+                                        <div class="text-xs font-mono font-bold" id="dev-today">--</div>
+                                        <div class="text-[8px] font-mono text-gray-600" id="dev-typical">--</div>
+                                        <div class="text-[9px] font-mono font-black mt-1 px-1.5 py-0.5 rounded" id="dev-status">--</div>
+                                        <div class="text-[8px] font-mono text-gray-600 mt-0.5" id="dev-last">--</div>
+                                    </div>
+                                </div>
+
                                 <div class="text-right tooltip-bottom" data-tooltip="SMA Crossover Signal&#10;&#10;Golden Cross: SMA 50 > SMA 200&#10;  Bullish — uptrend forming&#10;&#10;Death Cross: SMA 50 < SMA 200&#10;  Bearish — downtrend forming">
                                     <div id="signal-badge" class="inline-flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-md">
                                         <span class="w-2 h-2 rounded-full animate-pulse" id="signal-dot"></span>
@@ -269,7 +298,7 @@
                             </div>
                         </div>
 
-                        <div class="md:col-span-4 glass-box p-6 rounded-xl flex flex-col justify-between items-center text-center animate-fade-in tooltip-bottom" style="animation-delay: 0.2s;" data-tooltip="CNN Fear & Greed Index&#10;Measures overall market sentiment.&#10;&#10;0-25: Extreme Fear (potential buying opportunity)&#10;25-45: Fear&#10;45-55: Neutral&#10;55-75: Greed&#10;75-100: Extreme Greed (market may be overvalued)">
+                        <div class="md:col-span-4 glass-box p-6 rounded-xl flex flex-col justify-between items-center text-center animate-fade-in tooltip-bottom" style="animation-delay: 0.2s;" data-widget="sentiment" data-tooltip="CNN Fear & Greed Index&#10;Measures overall market sentiment.&#10;&#10;0-25: Extreme Fear (potential buying opportunity)&#10;25-45: Fear&#10;45-55: Neutral&#10;55-75: Greed&#10;75-100: Extreme Greed (market may be overvalued)">
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest w-full text-left">Market Sentiment</h3>
                             
                             <div class="relative w-40 h-40 mt-4">
@@ -290,7 +319,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         
                         <!-- Technicals Gauge -->
-                        <div class="glass-box p-6 rounded-xl animate-fade-in flex flex-col items-center" style="animation-delay: 0.25s;" data-tooltip="Technical Indicators Score&#10;Combines RSI and MACD into one gauge.&#10;&#10;RSI (14): Relative Strength Index&#10;  Below 30 = Oversold (buy signal)&#10;  30-70 = Neutral&#10;  Above 70 = Overbought (sell signal)&#10;&#10;MACD: Moving Average Convergence/Divergence&#10;  Histogram > 0 = Bullish momentum&#10;  Histogram < 0 = Bearish momentum&#10;&#10;Gauge: 0 = Strong Sell → 100 = Strong Buy">
+                        <div class="glass-box p-6 rounded-xl animate-fade-in flex flex-col items-center" style="animation-delay: 0.25s;" data-widget="technicals" data-tooltip="Technical Indicators Score&#10;Combines RSI and MACD into one gauge.&#10;&#10;RSI (14): Relative Strength Index&#10;  Below 30 = Oversold (buy signal)&#10;  30-70 = Neutral&#10;  Above 70 = Overbought (sell signal)&#10;&#10;MACD: Moving Average Convergence/Divergence&#10;  Histogram > 0 = Bullish momentum&#10;  Histogram < 0 = Bearish momentum&#10;&#10;Gauge: 0 = Strong Sell → 100 = Strong Buy">
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest w-full text-left mb-2">Technicals</h3>
                             <div class="relative w-52 h-28 mt-2">
                                 <svg viewBox="0 0 200 110" class="w-full h-full">
@@ -335,7 +364,7 @@
                         </div>
 
                         <!-- Analyst Rating Gauge -->
-                        <div class="glass-box p-6 rounded-xl animate-fade-in flex flex-col items-center" style="animation-delay: 0.25s;" data-tooltip="Wall Street Analyst Consensus&#10;Aggregates ratings from institutional analysts.&#10;&#10;Strong Buy / Buy / Hold / Sell / Strong Sell&#10;&#10;Gauge is weighted:&#10;  Strong Buy = 5 pts, Buy = 4, Hold = 3&#10;  Sell = 2, Strong Sell = 1&#10;&#10;Score: 0 = All Strong Sell → 100 = All Strong Buy">
+                        <div class="glass-box p-6 rounded-xl animate-fade-in flex flex-col items-center" style="animation-delay: 0.25s;" data-widget="analyst" data-tooltip="Wall Street Analyst Consensus&#10;Aggregates ratings from institutional analysts.&#10;&#10;Strong Buy / Buy / Hold / Sell / Strong Sell&#10;&#10;Gauge is weighted:&#10;  Strong Buy = 5 pts, Buy = 4, Hold = 3&#10;  Sell = 2, Strong Sell = 1&#10;&#10;Score: 0 = All Strong Sell → 100 = All Strong Buy">
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest w-full text-left mb-2">Analyst Rating</h3>
                             <div class="relative w-52 h-28 mt-2">
                                 <svg viewBox="0 0 200 110" class="w-full h-full">
@@ -393,7 +422,7 @@
                         </div>
 
                         <!-- Price Target -->
-                        <div class="glass-box p-6 rounded-xl animate-fade-in flex flex-col justify-between" style="animation-delay: 0.25s;" data-tooltip="1-Year Analyst Price Target&#10;Where analysts expect the stock to be in 12 months.&#10;&#10;Mean: Average of all analyst targets&#10;High/Low: Most optimistic / pessimistic targets&#10;Upside %%: How far the mean target is above&#10;(or below) the current price.&#10;&#10;Green = upside potential, Red = downside risk">
+                        <div class="glass-box p-6 rounded-xl animate-fade-in flex flex-col justify-between" style="animation-delay: 0.25s;" data-widget="pricetarget" data-tooltip="1-Year Analyst Price Target&#10;Where analysts expect the stock to be in 12 months.&#10;&#10;Mean: Average of all analyst targets&#10;High/Low: Most optimistic / pessimistic targets&#10;Upside %%: How far the mean target is above&#10;(or below) the current price.&#10;&#10;Green = upside potential, Red = downside risk">
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">1 Year Price Target</h3>
                             <div class="flex-1 flex flex-col justify-center items-center">
                                 <div class="text-4xl font-black text-white" id="pt-mean">--</div>
@@ -422,7 +451,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                         <!-- Bollinger Bands -->
-                        <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.28s;" data-tooltip="Bollinger Bands (20, 2)&#10;Price channel: SMA(20) ± 2 standard deviations.&#10;&#10;Upper Band: Overbought zone&#10;Lower Band: Oversold zone&#10;&#10;Squeeze: Bands narrowing = low volatility,&#10;often signals a big move is coming.&#10;&#10;Bandwidth shows how wide the bands are as %%.">
+                        <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.28s;" data-widget="bollinger" data-tooltip="Bollinger Bands (20, 2)&#10;Price channel: SMA(20) ± 2 standard deviations.&#10;&#10;Upper Band: Overbought zone&#10;Lower Band: Oversold zone&#10;&#10;Squeeze: Bands narrowing = low volatility,&#10;often signals a big move is coming.&#10;&#10;Bandwidth shows how wide the bands are as %%.">
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Bollinger Bands</h3>
                             <div class="space-y-2">
                                 <div class="flex justify-between text-xs font-mono">
@@ -454,7 +483,7 @@
                         </div>
 
                         <!-- OBV Analysis -->
-                        <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.28s;" data-tooltip="On-Balance Volume (OBV)&#10;Cumulative volume indicator.&#10;&#10;OBV Rising + Price Flat = Accumulation&#10;  (Smart money quietly buying)&#10;&#10;OBV Falling + Price Rising = Distribution&#10;  (Smart money selling into rally)&#10;&#10;Confirmation = OBV and price moving together.">
+                        <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.28s;" data-widget="obv" data-tooltip="On-Balance Volume (OBV)&#10;Cumulative volume indicator.&#10;&#10;OBV Rising + Price Flat = Accumulation&#10;  (Smart money quietly buying)&#10;&#10;OBV Falling + Price Rising = Distribution&#10;  (Smart money selling into rally)&#10;&#10;Confirmation = OBV and price moving together.">
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">On-Balance Volume</h3>
                             <div class="space-y-2">
                                 <div class="flex justify-between text-xs font-mono">
@@ -475,7 +504,7 @@
                         </div>
 
                         <!-- Volume Profile -->
-                        <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.28s;" data-tooltip="Volume Profile&#10;Compares latest volume to 20-day average.&#10;&#10;Ratio > 1.5x = Volume Spike&#10;  (Institutional activity likely)&#10;&#10;Spike + price move = Trend confirmation&#10;Spike + no move = Absorption (big player&#10;absorbing selling pressure)&#10;&#10;Dry volume = Low interest / consolidation.">
+                        <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.28s;" data-widget="volume" data-tooltip="Volume Profile&#10;Compares latest volume to 20-day average.&#10;&#10;Ratio > 1.5x = Volume Spike&#10;  (Institutional activity likely)&#10;&#10;Spike + price move = Trend confirmation&#10;Spike + no move = Absorption (big player&#10;absorbing selling pressure)&#10;&#10;Dry volume = Low interest / consolidation.">
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Volume Profile</h3>
                             <div class="space-y-2">
                                 <div class="flex justify-between text-xs font-mono">
@@ -507,7 +536,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                         <!-- Denoised Trend -->
-                        <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.32s;" data-tooltip="Savitzky-Golay Denoised Trend&#10;Polynomial smoothing (window=21, order=3)&#10;removes market noise to reveal true velocity.&#10;&#10;Slope: Denoised price change per day (%)&#10;Acceleration: Is the trend speeding up or slowing?&#10;&#10;Momentum Exhaustion:&#10;When slope diverges from RSI, the current&#10;move is running out of steam mathematically.">
+                        <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.32s;" data-widget="denoised" data-tooltip="Savitzky-Golay Denoised Trend&#10;Polynomial smoothing (window=21, order=3)&#10;removes market noise to reveal true velocity.&#10;&#10;Slope: Denoised price change per day (%)&#10;Acceleration: Is the trend speeding up or slowing?&#10;&#10;Momentum Exhaustion:&#10;When slope diverges from RSI, the current&#10;move is running out of steam mathematically.">
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Denoised Trend <span class="text-[9px] text-gray-600 normal-case">(Savitzky-Golay)</span></h3>
                             <div class="text-center py-3">
                                 <div class="text-3xl font-black font-mono" id="sg-slope">--</div>
@@ -529,7 +558,7 @@
                         </div>
 
                         <!-- Z-Score -->
-                        <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.32s;" data-tooltip="20-Day Statistical Z-Score&#10;How far the price is from its 20-day mean&#10;measured in standard deviations (σ).&#10;&#10;Z > +2.0: 95.4%% pullback probability&#10;Z > +1.5: 86.6%% — stretched&#10;Z < -1.5: 86.6%% — compressed&#10;Z < -2.0: 95.4%% bounce probability&#10;&#10;Based on normal distribution statistics.&#10;This is pure math, not opinion.">
+                        <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.32s;" data-widget="zscore" data-tooltip="20-Day Statistical Z-Score&#10;How far the price is from its 20-day mean&#10;measured in standard deviations (σ).&#10;&#10;Z > +2.0: 95.4%% pullback probability&#10;Z > +1.5: 86.6%% — stretched&#10;Z < -1.5: 86.6%% — compressed&#10;Z < -2.0: 95.4%% bounce probability&#10;&#10;Based on normal distribution statistics.&#10;This is pure math, not opinion.">
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Z-Score <span class="text-[9px] text-gray-600 normal-case">(Mean Reversion)</span></h3>
                             <div class="text-center py-3">
                                 <div class="text-4xl font-black font-mono" id="zscore-val">--</div>
@@ -557,7 +586,7 @@
                         </div>
 
                         <!-- Inference Weights -->
-                        <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.32s;" data-tooltip="Inference Weighting Engine&#10;Pre-calculated composite from 4 pillars:&#10;&#10;Technical (35%%): SG slope + Z-Score + RSI/MACD&#10;Sentiment (25%%): Fear & Greed (contrarian) + news NLP&#10;Analyst (20%%): Wall Street consensus score&#10;Volume (20%%): OBV divergence + volume spikes&#10;&#10;Composite > 70 = Buy&#10;55-70 = Hold, 40-55 = Watch, < 40 = Sell&#10;&#10;This score is the Quant AI verdict's baseline.">
+                        <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.32s;" data-widget="weights" data-tooltip="Inference Weighting Engine&#10;Pre-calculated composite from 4 pillars:&#10;&#10;Technical (35%%): SG slope + Z-Score + RSI/MACD&#10;Sentiment (25%%): Fear & Greed (contrarian) + news NLP&#10;Analyst (20%%): Wall Street consensus score&#10;Volume (20%%): OBV divergence + volume spikes&#10;&#10;Composite > 70 = Buy&#10;55-70 = Hold, 40-55 = Watch, < 40 = Sell&#10;&#10;This score is the Quant AI verdict's baseline.">
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Inference Weights</h3>
                             <div class="text-center py-2">
                                 <div class="text-3xl font-black font-mono" id="iw-composite">--</div>
@@ -608,7 +637,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                         <!-- Shariah Screen (BETA) -->
-                        <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.34s;" data-tooltip="AAOIFI-Style Shariah Screen (BETA)&#10;Financial ratios vs market cap, 30%% threshold:&#10;  Interest-bearing debt / MCap&#10;  Cash + ST investments / MCap&#10;  Receivables / MCap&#10;Plus business-activity filter (banks, alcohol,&#10;tobacco, gambling...).&#10;&#10;Non-compliant income %% and purification rate&#10;need a fundamentals feed — shown as PENDING,&#10;never faked. Status is preliminary (تجريبي).">
+                        <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.34s;" data-widget="shariah" data-tooltip="AAOIFI-Style Shariah Screen (BETA)&#10;Financial ratios vs market cap, 30%% threshold:&#10;  Interest-bearing debt / MCap&#10;  Cash + ST investments / MCap&#10;  Receivables / MCap&#10;Plus business-activity filter (banks, alcohol,&#10;tobacco, gambling...).&#10;&#10;Non-compliant income %% and purification rate&#10;need a fundamentals feed — shown as PENDING,&#10;never faked. Status is preliminary (تجريبي).">
                             <div class="flex justify-between items-center mb-3">
                                 <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Shariah Screen</h3>
                                 <span id="shariah-source-tag" class="text-[9px] font-mono font-black px-2 py-0.5 rounded-full bg-warn/15 text-warn border border-warn/30">BETA</span>
@@ -617,7 +646,7 @@
                         </div>
 
                         <!-- Monte Carlo Simulator -->
-                        <div class="md:col-span-2 glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.34s;" data-tooltip="Monte Carlo Simulator (GBM)&#10;10,000 price paths: S_t = S0·exp((μ−σ²/2)t + σ√t·Z)&#10;μ and σ estimated from the ticker's REAL&#10;1-year daily log returns.&#10;&#10;Cone: 5th–95th percentile of simulated paths&#10;Median: bold white line&#10;&#10;VaR 95%%: loss not exceeded in 95%% of paths&#10;CVaR 95%%: average loss of the worst 5%%&#10;Target Prob: %% of paths that touch your target.&#10;&#10;Seeded per ticker+day → reproducible.&#10;A probability distribution, not a forecast.">
+                        <div class="md:col-span-2 glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.34s;" data-widget="montecarlo" data-tooltip="Monte Carlo Simulator (GBM)&#10;10,000 price paths: S_t = S0·exp((μ−σ²/2)t + σ√t·Z)&#10;μ and σ estimated from the ticker's REAL&#10;1-year daily log returns.&#10;&#10;Cone: 5th–95th percentile of simulated paths&#10;Median: bold white line&#10;&#10;VaR 95%%: loss not exceeded in 95%% of paths&#10;CVaR 95%%: average loss of the worst 5%%&#10;Target Prob: %% of paths that touch your target.&#10;&#10;Seeded per ticker+day → reproducible.&#10;A probability distribution, not a forecast.">
                             <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
                                 <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Monte Carlo <span class="text-[9px] text-gray-600 normal-case">(10,000 GBM paths · real μ/σ)</span></h3>
                                 <div class="flex items-center gap-2 text-[10px] font-mono">
@@ -639,7 +668,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                         <!-- Position Sizing -->
-                        <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.38s;" data-tooltip="Position Sizing&#10;How much of your capital this trade deserves.&#10;&#10;w_vol = target volatility / realized volatility&#10;Kelly f* = p − (1−p)/b, damped to ¼ Kelly&#10;  p: win prob mapped from composite score&#10;  b: real avg 5-day gain / avg 5-day loss&#10;Final = min(w_vol, ¼Kelly) × profile, hard-capped.&#10;&#10;Stop = entry − 2×ATR(14).&#10;p-mapping calibration is in progress (beta).">
+                        <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.38s;" data-widget="possize" data-tooltip="Position Sizing&#10;How much of your capital this trade deserves.&#10;&#10;w_vol = target volatility / realized volatility&#10;Kelly f* = p − (1−p)/b, damped to ¼ Kelly&#10;  p: win prob mapped from composite score&#10;  b: real avg 5-day gain / avg 5-day loss&#10;Final = min(w_vol, ¼Kelly) × profile, hard-capped.&#10;&#10;Stop = entry − 2×ATR(14).&#10;p-mapping calibration is in progress (beta).">
                             <div class="flex justify-between items-center mb-3">
                                 <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Position Sizing</h3>
                                 <div class="flex rounded-lg overflow-hidden border border-border text-[9px] font-mono" id="profile-seg">
@@ -652,7 +681,7 @@
                         </div>
 
                         <!-- Backtest -->
-                        <div class="md:col-span-2 glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.38s;" data-tooltip="Walk-Forward Backtest (2 years)&#10;Replays the TECHNICAL pillar of the composite&#10;signal day by day with no lookahead:&#10;long when score ≥ 55, flat otherwise.&#10;&#10;Hit Rate: %% of long signals with positive&#10;5-day forward return&#10;Brier: calibration of score-as-probability (0=perfect)&#10;Sharpe / Max DD vs Buy & Hold&#10;&#10;Sentiment & analyst pillars have no historical&#10;archive yet — full-composite validation is a&#10;TARGET, not an achieved result.">
+                        <div class="md:col-span-2 glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.38s;" data-widget="backtest" data-tooltip="Walk-Forward Backtest (2 years)&#10;Replays the TECHNICAL pillar of the composite&#10;signal day by day with no lookahead:&#10;long when score ≥ 55, flat otherwise.&#10;&#10;Hit Rate: %% of long signals with positive&#10;5-day forward return&#10;Brier: calibration of score-as-probability (0=perfect)&#10;Sharpe / Max DD vs Buy & Hold&#10;&#10;Sentiment & analyst pillars have no historical&#10;archive yet — full-composite validation is a&#10;TARGET, not an achieved result.">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Backtest &amp; Calibration <span class="text-[9px] text-gray-600 normal-case">(walk-forward · 2y)</span></h3>
                                 <span class="text-[9px] font-mono font-black px-2 py-0.5 rounded-full bg-warn/15 text-warn border border-warn/30">TECHNICAL PILLAR · FULL SIGNAL = TARGET</span>
@@ -662,7 +691,7 @@
                     </div>
 
                     <!-- ═══ Halal Portfolio Optimizer (BETA) ═══ -->
-                    <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.42s;" data-tooltip="Halal Portfolio Optimizer (BETA)&#10;Markowitz efficient frontier, no short-selling,&#10;on real 1-year returns of a DEMO basket of&#10;US stocks held by Shariah ETFs (SPUS / HLAL).&#10;&#10;Gray dots: random feasible portfolios&#10;Green line: efficient frontier&#10;Amber dot: your portfolio for the selected&#10;risk profile.&#10;&#10;Wiring the basket to the live Shariah screen&#10;is pending — clearly labeled beta.">
+                    <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.42s;" data-widget="optimizer" data-tooltip="Halal Portfolio Optimizer (BETA)&#10;Markowitz efficient frontier, no short-selling,&#10;on real 1-year returns of a DEMO basket of&#10;US stocks held by Shariah ETFs (SPUS / HLAL).&#10;&#10;Gray dots: random feasible portfolios&#10;Green line: efficient frontier&#10;Amber dot: your portfolio for the selected&#10;risk profile.&#10;&#10;Wiring the basket to the live Shariah screen&#10;is pending — clearly labeled beta.">
                         <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Halal Portfolio Optimizer <span class="text-[9px] text-gray-600 normal-case">(Markowitz · no-short)</span></h3>
                             <span class="text-[9px] font-mono font-black px-2 py-0.5 rounded-full bg-warn/15 text-warn border border-warn/30">BETA · DEMO BASKET (SPUS/HLAL NAMES)</span>
@@ -671,7 +700,7 @@
                     </div>
 
                     <!-- ═══ Ask MSA — Arabic copilot ═══ -->
-                    <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.46s;" data-tooltip="Ask MSA — Agentic Copilot&#10;Quant AI with tool-calling over the LIVE endpoints:&#10;analyze, Monte Carlo, Shariah, sizing, backtest.&#10;&#10;Anti-hallucination rules:&#10;- may only quote numbers returned by tools&#10;- states tool failures explicitly&#10;- cites the source of every figure&#10;&#10;Ask in Arabic: «أشتري أرامكو؟»&#10;Saudi tickers via .SR (e.g. 2222.SR).">
+                    <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.46s;" data-widget="chat" data-tooltip="Ask MSA — Agentic Copilot&#10;Quant AI with tool-calling over the LIVE endpoints:&#10;analyze, Monte Carlo, Shariah, sizing, backtest.&#10;&#10;Anti-hallucination rules:&#10;- may only quote numbers returned by tools&#10;- states tool failures explicitly&#10;- cites the source of every figure&#10;&#10;Ask in Arabic: «أشتري أرامكو؟»&#10;Saudi tickers via .SR (e.g. 2222.SR).">
                         <div class="flex justify-between items-center mb-4">
                             <div class="flex items-center gap-2">
                                 <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Ask MSA <span class="text-[9px] text-gray-600 normal-case">— Arabic copilot · tool-calling · grounded numbers only</span></h3>
@@ -694,7 +723,7 @@
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                        <div class="lg:col-span-2 glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.3s;" data-tooltip="Price Action Chart&#10;Real closing prices over the last 30 days.&#10;&#10;Green segments = price moving up&#10;Red segments = price moving down&#10;&#10;SMA 50 (green dashed): Short-term trend&#10;SMA 200 (amber dashed): Long-term trend">
+                        <div class="lg:col-span-2 glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.3s;" data-widget="chart" data-tooltip="Price Action Chart&#10;Real closing prices over the last 30 days.&#10;&#10;Green segments = price moving up&#10;Red segments = price moving down&#10;&#10;SMA 50 (green dashed): Short-term trend&#10;SMA 200 (amber dashed): Long-term trend">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Price Action</h3>
                                 <div class="flex gap-2 items-center">
@@ -717,7 +746,7 @@
                             </div>
                         </div>
 
-                        <div id="gpt-card" class="glass-box p-6 rounded-xl flex flex-col animate-fade-in" style="animation-delay: 0.4s;" data-tooltip="Quant AI Analysis&#10;AI verdict grounded in the computed signals.&#10;Synthesizes all data points:&#10;SMAs, RSI, MACD, Fear & Greed,&#10;analyst ratings, and latest news.&#10;&#10;Confidence: 0-100%%&#10;  80-100 = High conviction&#10;  50-79 = Moderate conviction&#10;  Below 50 = Low conviction">
+                        <div id="gpt-card" class="glass-box p-6 rounded-xl flex flex-col animate-fade-in" style="animation-delay: 0.4s;" data-widget="quantai" data-tooltip="Quant AI Analysis&#10;AI verdict grounded in the computed signals.&#10;Synthesizes all data points:&#10;SMAs, RSI, MACD, Fear & Greed,&#10;analyst ratings, and latest news.&#10;&#10;Confidence: 0-100%%&#10;  80-100 = High conviction&#10;  50-79 = Moderate conviction&#10;  Below 50 = Low conviction">
                             <div class="flex justify-between items-center mb-4">
                                 <div class="flex items-center gap-2">
                                     <h3 class="text-base font-bold text-white uppercase tracking-widest">Quant AI Analysis</h3>
@@ -736,7 +765,7 @@
                         </div>
                     </div>
 
-                    <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.5s;" data-tooltip="FinBERT NLP News Sentiment&#10;Each headline analyzed by ProsusAI/finbert&#10;(financial BERT transformer model).&#10;&#10;Green dot = positive sentiment&#10;Red dot = negative sentiment&#10;Gray dot = neutral&#10;&#10;Aggregate score: 0 = very bearish, 1 = very bullish">
+                    <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.5s;" data-widget="news" data-tooltip="FinBERT NLP News Sentiment&#10;Each headline analyzed by ProsusAI/finbert&#10;(financial BERT transformer model).&#10;&#10;Green dot = positive sentiment&#10;Red dot = negative sentiment&#10;Gray dot = neutral&#10;&#10;Aggregate score: 0 = very bearish, 1 = very bullish">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Latest Intelligence</h3>
                             <div class="flex items-center gap-3" id="finbert-summary">
@@ -749,7 +778,7 @@
                     </div>
 
                     <!-- Buy via Broker -->
-                    <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.55s;" data-tooltip="Saudi Brokerage Options&#10;Licensed brokers where you can open an&#10;account and place an order for this stock.&#10;&#10;Links open the broker's official site.&#10;MSA is not affiliated with any broker.">
+                    <div class="glass-box p-6 rounded-xl animate-fade-in" style="animation-delay: 0.55s;" data-widget="brokers" data-tooltip="Saudi Brokerage Options&#10;Licensed brokers where you can open an&#10;account and place an order for this stock.&#10;&#10;Links open the broker's official site.&#10;MSA is not affiliated with any broker.">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Ready to buy <span class="text-bull" id="broker-ticker">--</span>? <span class="text-[9px] text-gray-600 normal-case">— pick a broker</span></h3>
                             <span class="text-[9px] font-mono text-gray-600">CMA-LICENSED · KSA</span>
@@ -784,7 +813,7 @@
                     </div>
 
                     <!-- Compare CTA -->
-                    <div class="glass-box p-8 rounded-xl text-center animate-fade-in" style="animation-delay: 0.6s; border-color: rgba(245,158,11,0.15);" id="compare-cta">
+                    <div class="glass-box p-8 rounded-xl text-center animate-fade-in" style="animation-delay: 0.6s; border-color: rgba(245,158,11,0.15);" data-widget="comparecta" id="compare-cta">
                         <h3 class="text-lg font-black text-white mb-2">Not sure? Compare it.</h3>
                         <p class="text-sm text-gray-500 font-mono max-w-md mx-auto mb-5">Put this ticker head-to-head against another option. We'll compare every signal and tell you which one's stronger.</p>
                         <a id="compare-link" href="compare.html" class="inline-flex items-center gap-2 bg-warn/10 text-warn border border-warn/30 px-6 py-3 rounded-full font-bold text-sm uppercase tracking-wider hover:bg-warn/20 hover:shadow-[0_0_20px_rgba(245,158,11,0.2)] transition">
@@ -1095,6 +1124,7 @@
             currentTicker = data.ticker;
             updateFavButton();
             document.getElementById('broker-ticker').textContent = data.ticker;
+            renderMiniStats(data);
 
             document.getElementById('ticker-symbol').textContent = data.ticker;
             document.getElementById('ticker-bg').textContent = data.ticker;
@@ -2141,6 +2171,271 @@
         } else {
             checkUrlParams();
         }
+    </script>
+
+    <script>
+        // ═════════ Mini stats: 6M range + price deviation ═════════
+        let lastData = null;
+        function renderMiniStats(data) {
+            lastData = data;
+            const cs = curSym(data.ticker);
+            const dloc = lang === 'ar' ? 'ar' : 'en-US';
+            const fdate = (s) => s ? new Date(s).toLocaleDateString(dloc, { month: 'short', day: 'numeric' }) : '';
+            const hist = data.price_history || [];
+
+            const r6 = data.range_6m || {};
+            let hiV, hiD, loV, loD, labelKey;
+            if (r6.high != null && r6.low != null) {
+                hiV = r6.high; hiD = r6.high_date; loV = r6.low; loD = r6.low_date; labelKey = '6M RANGE';
+            } else if (hist.length) {
+                // API not redeployed yet — honest fallback to the 30d closes we do have
+                const hi = hist.reduce((a, b) => b.close > a.close ? b : a);
+                const lo = hist.reduce((a, b) => b.close < a.close ? b : a);
+                hiV = hi.close; hiD = hi.date; loV = lo.close; loD = lo.date; labelKey = '1M RANGE';
+            }
+            if (hiV != null) {
+                document.getElementById('r6-label').textContent = t(labelKey);
+                document.getElementById('r6-high').textContent = '▲ ' + cs + fmtN(hiV);
+                document.getElementById('r6-high-date').textContent = fdate(hiD);
+                document.getElementById('r6-low').textContent = '▼ ' + cs + fmtN(loV);
+                document.getElementById('r6-low-date').textContent = fdate(loD);
+            }
+
+            // deviation: today's move vs typical daily move (avg |return| over ~30d)
+            const rets = [];
+            for (let i = 1; i < hist.length; i++) {
+                const p = hist[i - 1].close;
+                if (p) rets.push((hist[i].close - p) / p * 100);
+            }
+            const typical = rets.length ? rets.reduce((a, b) => a + Math.abs(b), 0) / rets.length : null;
+            const today = (data.price_target || {}).daily_change_pct;
+            const devToday = document.getElementById('dev-today');
+            const devStatus = document.getElementById('dev-status');
+            const devLast = document.getElementById('dev-last');
+            if (today != null && typical != null && typical > 0) {
+                devToday.textContent = (today >= 0 ? '+' : '') + today.toFixed(2) + '%';
+                devToday.className = 'text-xs font-mono font-bold ' + (today >= 0 ? 'text-bull' : 'text-bear');
+                document.getElementById('dev-typical').textContent = t('Typical') + ' ±' + typical.toFixed(2) + '%';
+                const ratio = Math.abs(today) / typical;
+                const st = ratio >= 2 ? 'EXTREME' : ratio >= 1.2 ? 'ELEVATED' : 'NORMAL';
+                devStatus.textContent = t(st);
+                devStatus.className = 'text-[9px] font-mono font-black mt-1 px-1.5 py-0.5 rounded ' +
+                    (st === 'EXTREME' ? 'bg-bear/10 text-bear' : st === 'ELEVATED' ? 'bg-warn/10 text-warn' : 'bg-bull/10 text-bull');
+                let spike = null;
+                for (let i = rets.length - 1; i >= 0; i--) {
+                    if (Math.abs(rets[i]) > 1.5 * typical) { spike = { v: rets[i], d: hist[i + 1].date }; break; }
+                }
+                devLast.textContent = spike
+                    ? t('Last') + ': ' + (spike.v >= 0 ? '+' : '') + spike.v.toFixed(1) + '% (' + fdate(spike.d) + ')'
+                    : t('None (30d)');
+            } else {
+                devToday.textContent = '--'; devStatus.textContent = '--'; devLast.textContent = '';
+            }
+        }
+
+        // ═════════ Customize dashboard (display only — never changes the analysis) ═════════
+        const WIDGETS = [
+            ['sentiment', 'Market Sentiment'], ['technicals', 'Technicals'], ['analyst', 'Analyst Rating'],
+            ['pricetarget', 'Price Target'], ['bollinger', 'Bollinger Bands'], ['obv', 'On-Balance Volume'],
+            ['volume', 'Volume Profile'], ['denoised', 'Denoised Trend'], ['zscore', 'Z-Score'],
+            ['weights', 'Inference Weights'], ['shariah', 'Shariah Screen'], ['montecarlo', 'Monte Carlo'],
+            ['possize', 'Position Sizing'], ['backtest', 'Backtest'], ['optimizer', 'Portfolio Optimizer'],
+            ['chat', 'Ask MSA'], ['chart', 'Price Chart'], ['quantai', 'Quant AI'], ['news', 'News'],
+            ['brokers', 'Brokers'], ['comparecta', 'Compare CTA'],
+        ];
+        function getHiddenWidgets() {
+            try { const l = JSON.parse(getCookie('msa_hidden_widgets') || '[]'); return Array.isArray(l) ? l : []; }
+            catch { return []; }
+        }
+        function setWidgetVisible(id, vis) {
+            const el = document.querySelector(`[data-widget="${id}"]`);
+            if (el) el.style.display = vis ? '' : 'none';
+            let l = getHiddenWidgets().filter(x => x !== id);
+            if (!vis) l.push(id);
+            setCookie('msa_hidden_widgets', JSON.stringify(l));
+            document.querySelectorAll('#customize-list input').forEach(cb => {
+                if (cb.dataset.w === id) cb.checked = vis;
+            });
+        }
+        (function initCustomize() {
+            const hidden = getHiddenWidgets();
+            const list = document.getElementById('customize-list');
+            WIDGETS.forEach(([id, en]) => {
+                const row = document.createElement('label');
+                row.className = 'flex items-center gap-2 text-xs font-mono text-gray-300 hover:text-white cursor-pointer px-1 py-1 rounded hover:bg-white/5';
+                const cb = document.createElement('input');
+                cb.type = 'checkbox'; cb.dataset.w = id; cb.checked = !hidden.includes(id);
+                cb.style.accentColor = '#00ff88';
+                cb.onchange = () => setWidgetVisible(id, cb.checked);
+                const sp = document.createElement('span');
+                sp.textContent = en;
+                row.appendChild(cb); row.appendChild(sp); list.appendChild(row);
+
+                const card = document.querySelector(`[data-widget="${id}"]`);
+                if (card) {
+                    card.style.position = 'relative';
+                    if (hidden.includes(id)) card.style.display = 'none';
+                    const x = document.createElement('button');
+                    x.textContent = '✕';
+                    x.className = 'absolute top-2 right-2 z-20 w-6 h-6 flex items-center justify-center rounded text-gray-700 hover:text-bear hover:bg-white/5 text-xs transition';
+                    x.onclick = (e) => { e.stopPropagation(); setWidgetVisible(id, false); };
+                    card.appendChild(x);
+                }
+            });
+            const btn = document.getElementById('customize-btn');
+            const menu = document.getElementById('customize-menu');
+            btn.onclick = (e) => { e.stopPropagation(); menu.classList.toggle('hidden'); };
+            document.addEventListener('click', (e) => {
+                if (!menu.contains(e.target) && !btn.contains(e.target)) menu.classList.add('hidden');
+            });
+        })();
+
+        // ═════════ Language toggle (EN ⇄ AR) ═════════
+        const AR = {
+            // nav / header / states
+            'Terminal': 'لوحة التحليل', 'Compare': 'المقارنة', 'Favorites': 'المفضلة', 'Home': 'الرئيسية',
+            'Analyze': 'تحليل', 'WAITING FOR INPUT': 'في انتظار الإدخال', 'Customize': 'تخصيص',
+            'STATUS:': 'الحالة:', 'READY': 'جاهز', 'CONNECTED': 'متصل', 'FETCHING': 'جارٍ الجلب', 'ERROR': 'خطأ',
+            '★ FAVORITES': '★ المفضلة', 'RUNNING FULL ANALYSIS': 'تحليل شامل قيد التشغيل',
+            'Enter a Ticker to Begin': 'أدخل رمز السهم للبدء',
+            "Type any stock symbol above and hit Analyze. We'll fetch live data, calculate SMAs, pull market sentiment, and run the Quant AI verdict engine.":
+                'اكتب أي رمز سهم في الأعلى واضغط «تحليل». سنجلب البيانات الحية، ونحسب المتوسطات المتحركة، ونرصد معنويات السوق، ونشغّل محرك الحكم بالذكاء الكمّي.',
+            'Analyzing...': 'جارٍ التحليل...',
+            'Fetching data, calculating SMAs, running Quant AI...': 'جلب البيانات، حساب المتوسطات، تشغيل الذكاء الكمّي...',
+            'Analysis Failed': 'فشل التحليل', 'Try Again': 'حاول مجددًا', 'Something went wrong.': 'حدث خطأ ما.',
+            'Display only — hiding widgets never changes the analysis or the final verdict.':
+                'عرض فقط — إخفاء الودجات لا يغيّر التحليل أو الحكم النهائي إطلاقًا.',
+            // header card
+            'TECHNICAL SIGNAL': 'الإشارة الفنية', '6M RANGE': 'نطاق 6 أشهر', '1M RANGE': 'نطاق شهر', 'DEVIATION': 'الانحراف',
+            'Typical': 'المعتاد', 'Last': 'آخر مرة', 'None (30d)': 'لا شيء خلال 30 يومًا',
+            'NORMAL': 'طبيعي', 'ELEVATED': 'مرتفع', 'EXTREME': 'حاد',
+            // widgets
+            'Market Sentiment': 'معنويات السوق', 'INDEX: FEAR & GREED': 'مؤشر الخوف والطمع',
+            'Technicals': 'المؤشرات الفنية', 'Analyst Rating': 'تقييم المحللين',
+            'Strong Buy': 'شراء قوي', 'Buy': 'شراء', 'Hold': 'احتفاظ', 'Sell': 'بيع', 'Strong Sell': 'بيع قوي',
+            '1 Year Price Target': 'السعر المستهدف لسنة', 'Current': 'السعر الحالي', 'Price Target': 'السعر المستهدف',
+            'Bollinger Bands': 'نطاقات بولينجر', 'Upper': 'النطاق الأعلى', 'Middle (SMA 20)': 'الأوسط (SMA 20)',
+            'Lower': 'النطاق الأدنى', 'Bandwidth': 'عرض النطاق', 'Position': 'الموقع', 'SQUEEZE DETECTED': 'انضغاط النطاقات',
+            'On-Balance Volume': 'حجم التداول التراكمي', 'OBV Trend': 'اتجاه OBV', 'Price Trend (20d)': 'اتجاه السعر (20ي)',
+            'Signal': 'الإشارة', 'Volume Profile': 'نشاط التداول', '20d Avg Volume': 'متوسط الحجم (20ي)',
+            'Latest Volume': 'أحدث حجم', 'Ratio': 'النسبة', 'Spike Days (20d)': 'أيام القفزات (20ي)', 'VOLUME SPIKE': 'قفزة في الحجم',
+            'Denoised Trend': 'الاتجاه المنقّى', 'VELOCITY / DAY': 'السرعة / يوم', 'Direction': 'الاتجاه', 'Acceleration': 'التسارع',
+            'Z-Score': 'درجة Z', '(Mean Reversion)': '(الارتداد للمتوسط)', 'Reversal Probability': 'احتمال الانعكاس',
+            '20d Mean': 'متوسط 20ي', '20d σ': 'σ 20ي', 'Inference Weights': 'أوزان الاستدلال',
+            'Technical': 'فني', 'Sentiment': 'معنويات', 'Analyst': 'محللون', 'Volume': 'حجم',
+            'Shariah Screen': 'الفحص الشرعي', 'Monte Carlo': 'مونت كارلو', 'TARGET': 'الهدف',
+            'Position Sizing': 'حجم المركز', 'Backtest & Calibration': 'الاختبار التاريخي والمعايرة', 'Backtest': 'الاختبار التاريخي',
+            'Halal Portfolio Optimizer': 'محسّن المحفظة الحلال', 'Portfolio Optimizer': 'محسّن المحفظة',
+            'Ask MSA': 'اسأل MSA', 'Send': 'إرسال', 'Price Action': 'حركة السعر', 'Price Chart': 'الرسم البياني',
+            'Quant AI Analysis': 'تحليل الذكاء الكمّي', 'Quant AI': 'الذكاء الكمّي', 'AI Recommendation': 'توصية الذكاء الاصطناعي',
+            'Latest Intelligence': 'آخر الأخبار', 'News': 'الأخبار', 'Brokers': 'الوسطاء', 'Compare CTA': 'زر المقارنة',
+            'SHOW FORMULA ▾': 'عرض المعادلة ▾', 'HIDE FORMULA ▴': 'إخفاء المعادلة ▴',
+            // compare CTA + brokers
+            'Not sure? Compare it.': 'غير متأكد؟ قارِنه.',
+            "Put this ticker head-to-head against another option. We'll compare every signal and tell you which one's stronger.":
+                'ضع هذا السهم في مواجهة خيار آخر — نقارن كل إشارة ونخبرك أيهما أقوى.',
+            'Compare with another ticker': 'قارن مع سهم آخر',
+            'Ready to buy': 'جاهز لشراء', '— pick a broker': '— اختر وسيطك',
+            'CMA-LICENSED · KSA': 'مرخّصون من هيئة السوق المالية', 'OPEN ↗': 'فتح ↗',
+            'Largest Shariah-compliant brokerage in the Kingdom. Local & international markets.':
+                'أكبر وساطة متوافقة مع الشريعة في المملكة — أسواق محلية وعالمية.',
+            "Saudi National Bank's investment arm. Full-service trading & asset management.":
+                'الذراع الاستثمارية للبنك الأهلي السعودي — تداول وإدارة أصول متكاملة.',
+            "Riyad Bank's brokerage. Tadawul, US markets & managed portfolios.":
+                'وساطة بنك الرياض — تداول والأسواق الأمريكية ومحافظ مُدارة.',
+            "Links open the broker's official website. MSA is not affiliated with, nor compensated by, any broker — always do your own due diligence.":
+                'الروابط تفتح الموقع الرسمي للوسيط. MSA غير مرتبطة بأي وسيط ولا تتقاضى عمولات — قم ببحثك الخاص دائمًا.',
+            // dynamic signal values
+            'Golden Cross': 'تقاطع ذهبي', 'Death Cross': 'تقاطع الموت', 'Neutral': 'محايد', 'NEUTRAL': 'محايد',
+            'OVERSOLD': 'تشبّع بيعي', 'OVERBOUGHT': 'تشبّع شرائي', 'BULLISH': 'صاعد', 'BEARISH': 'هابط',
+            'BUY': 'شراء', 'SELL': 'بيع', 'HOLD': 'احتفاظ', 'WATCH': 'مراقبة', 'Watch': 'مراقبة',
+            'Rising': 'صاعد', 'Falling': 'هابط', 'Flat': 'مستقر',
+            'Accumulation': 'تجميع', 'Distribution': 'تصريف', 'Confirmation': 'تأكيد',
+            'Normal Range': 'نطاق طبيعي', 'Oversold': 'تشبّع بيعي', 'Overbought': 'تشبّع شرائي',
+            'Extreme Fear': 'خوف شديد', 'Fear': 'خوف', 'Greed': 'طمع', 'Extreme Greed': 'طمع شديد',
+            'Bullish': 'إيجابي', 'Bearish': 'سلبي', 'Slightly Bullish': 'إيجابي نسبيًا', 'Slightly Bearish': 'سلبي نسبيًا',
+            'Mixed': 'متباين', 'No Data': 'لا بيانات',
+            'Upper Band': 'النطاق الأعلى', 'Lower Band': 'النطاق الأدنى', 'Mid Band': 'النطاق الأوسط',
+            'COMPLIANT': 'متوافق ✓', 'NON-COMPLIANT': 'غير متوافق ✕', 'UNKNOWN': 'غير محدد', 'MIXED': 'مختلط',
+        };
+        const AR_TIPS = {
+            'SMA Crossover Signal': 'إشارة تقاطع المتوسطات\n\nالتقاطع الذهبي: SMA 50 فوق SMA 200\n  إيجابي — اتجاه صاعد يتشكّل\n\nتقاطع الموت: SMA 50 تحت SMA 200\n  سلبي — اتجاه هابط يتشكّل',
+            '50-Day Simple Moving Average': 'المتوسط المتحرك البسيط لـ50 يومًا\nمتوسط أسعار الإغلاق لآخر 50 يومًا.\nيقيس الاتجاه قصير المدى.\nالسعر فوقه = زخم إيجابي.',
+            '200-Day Simple Moving Average': 'المتوسط المتحرك البسيط لـ200 يوم\nمؤشر الاتجاه طويل المدى.\nتقاطع SMA 50 فوقه = تقاطع ذهبي (إيجابي)\nوتحته = تقاطع الموت (سلبي).',
+            'CNN Fear & Greed Index': 'مؤشر الخوف والطمع (CNN)\nيقيس معنويات السوق العامة.\n\n0-25: خوف شديد (فرصة شراء محتملة)\n25-45: خوف\n45-55: محايد\n55-75: طمع\n75-100: طمع شديد (تقييم مبالغ فيه محتمل)',
+            'Technical Indicators Score': 'درجة المؤشرات الفنية\nتجمع RSI و MACD في عدّاد واحد.\n\nRSI(14): تحت 30 تشبّع بيعي (إشارة شراء)\nفوق 70 تشبّع شرائي (إشارة بيع)\n\nMACD: الهيستوغرام فوق الصفر = زخم صاعد\nتحته = زخم هابط\n\nالعدّاد: 0 = بيع قوي ← 100 = شراء قوي',
+            'Wall Street Analyst Consensus': 'إجماع محللي وول ستريت\nيجمع تقييمات المحللين المؤسسيين.\n\nالوزن: شراء قوي = 5، شراء = 4، احتفاظ = 3،\nبيع = 2، بيع قوي = 1\n\nالدرجة: 0 = الكل بيع قوي ← 100 = الكل شراء قوي',
+            '1-Year Analyst Price Target': 'السعر المستهدف خلال 12 شهرًا\nالمتوسط: متوسط أهداف المحللين\nالأعلى/الأدنى: أكثر الأهداف تفاؤلًا/تشاؤمًا\nنسبة الصعود: بُعد الهدف عن السعر الحالي\nأخضر = مجال صعود، أحمر = مخاطر هبوط',
+            'Bollinger Bands (20, 2)': 'نطاقات بولينجر (20، 2)\nقناة سعرية: SMA(20) ± انحرافان معياريان.\n\nالنطاق الأعلى: منطقة تشبّع شرائي\nالأدنى: منطقة تشبّع بيعي\n\nالانضغاط: تضيّق النطاقات = تقلب منخفض،\nغالبًا يسبق حركة كبيرة.',
+            'On-Balance Volume (OBV)': 'حجم التداول التراكمي (OBV)\nمؤشر حجم تراكمي.\n\nOBV يرتفع والسعر ثابت = تجميع (شراء خفي)\nOBV يهبط والسعر يرتفع = تصريف (بيع في القمة)\nتحركهما معًا = تأكيد الاتجاه.',
+            'Volume Profile': 'نشاط التداول\nيقارن أحدث حجم بمتوسط 20 يومًا.\n\nالنسبة فوق 1.5x = قفزة حجم\n(نشاط مؤسسي محتمل)\nقفزة مع حركة سعر = تأكيد اتجاه\nقفزة بلا حركة = امتصاص.',
+            'Savitzky-Golay Denoised Trend': 'الاتجاه المنقّى (سافيتزكي-غولاي)\nتنعيم متعدد الحدود (نافذة 21، درجة 3)\nيزيل ضجيج السوق ليكشف السرعة الحقيقية.\n\nالميل: تغيّر السعر المنقّى يوميًا (%)\nالتسارع: هل يتسارع الاتجاه أم يتباطأ؟\n\nإنهاك الزخم: تباعد الميل عن RSI يعني\nأن الحركة الحالية تفقد قوتها رياضيًا.',
+            '20-Day Statistical Z-Score': 'درجة Z الإحصائية (20 يومًا)\nبُعد السعر عن متوسطه بوحدات الانحراف σ.\n\nZ > +2: احتمال تراجع 95.4%\nZ > +1.5: 86.6% — ممتد\nZ < -1.5: 86.6% — منضغط\nZ < -2: احتمال ارتداد 95.4%\n\nرياضيات بحتة وفق التوزيع الطبيعي.',
+            'Inference Weighting Engine': 'محرك أوزان الاستدلال\nدرجة مركّبة من 4 ركائز:\n\nفني (35%): ميل SG + درجة Z + RSI/MACD\nمعنويات (25%): الخوف والطمع (عكسي) + الأخبار\nمحللون (20%): إجماع وول ستريت\nحجم (20%): تباعد OBV + قفزات الحجم\n\nفوق 70 = شراء، 55-70 = احتفاظ،\n40-55 = مراقبة، تحت 40 = بيع\nهذه الدرجة أساس حكم الذكاء الكمّي.',
+            'AAOIFI-Style Shariah Screen (BETA)': 'فحص شرعي وفق منهجية AAOIFI (تجريبي)\nنسب مالية مقابل القيمة السوقية، حد 30%:\n  الدين الربوي / النقد / الذمم المدينة\nمع فلتر النشاط (بنوك تقليدية، كحول،\nتبغ، قمار...).\n\nنسبة الدخل غير المتوافق والتطهير بانتظار\nمصدر بيانات متقدم — تُعرض «قيد الانتظار»\nولا تُختلق أبدًا.',
+            'Monte Carlo Simulator (GBM)': 'محاكاة مونت كارلو (GBM)\n10,000 مسار سعري من عوائد السهم\nالفعلية لسنة كاملة.\n\nالمخروط: النطاق بين المئين 5 و95\nالخط الأبيض: الوسيط\n\nVaR 95%: خسارة لا تُتجاوز في 95% من المسارات\nCVaR 95%: متوسط خسارة أسوأ 5%\nاحتمال الهدف: نسبة المسارات التي تلمس هدفك.\n\nتوزيع احتمالي وليس تنبؤًا.',
+            'Position Sizing': 'حجم المركز\nكم يستحق هذا السهم من رأس مالك.\n\nاستهداف التقلب + ربع كيلي (مخمَّد)\nالحجم النهائي = الأصغر بينهما × ملف\nالمخاطرة، بسقف صارم.\n\nوقف الخسارة = الدخول − 2×ATR(14).',
+            'Walk-Forward Backtest (2 years)': 'اختبار تاريخي متقدم (سنتان)\nيعيد تشغيل الركيزة الفنية يومًا بيوم\nدون أي استباق للبيانات:\nشراء عند درجة ≥ 55، خروج دونها.\n\nنسبة الإصابة، معايرة Brier، نسبة Sharpe،\nوأقصى تراجع مقابل الشراء والاحتفاظ.',
+            'Halal Portfolio Optimizer (BETA)': 'محسّن المحفظة الحلال (تجريبي)\nحدود ماركوويتز الكفؤة بدون بيع مكشوف\nعلى عوائد سنة فعلية لسلة تجريبية من\nأسهم تحتفظ بها صناديق شرعية (SPUS/HLAL).\n\nالنقاط الرمادية: محافظ عشوائية\nالخط الأخضر: الحد الكفء\nالنقطة الكهرمانية: محفظتك حسب ملف المخاطرة.',
+            'Ask MSA — Agentic Copilot': 'اسأل MSA — مساعد وكيل\nذكاء كمّي مع استدعاء أدوات حيّة:\nالتحليل، مونت كارلو، الفحص الشرعي،\nحجم المركز، الاختبار التاريخي.\n\nقواعد ضد الاختلاق:\n- يقتبس فقط أرقامًا أعادتها الأدوات\n- يصرّح بفشل أي أداة\n- يذكر مصدر كل رقم\n\nاسأل بالعربية: «أشتري أرامكو؟»',
+            'Price Action Chart': 'حركة السعر\nأسعار الإغلاق الفعلية لآخر 30 يومًا.\n\nأخضر = صعود، أحمر = هبوط\nSMA 50 (أخضر متقطع) و SMA 200 (كهرماني)\nمع نطاقات بولينجر والاتجاه المنقّى.',
+            'Quant AI Analysis': 'تحليل الذكاء الكمّي\nحكم ذكاء اصطناعي مبني على الإشارات المحسوبة:\nالمتوسطات، RSI، MACD، الخوف والطمع،\nتقييم المحللين وآخر الأخبار.\n\nالثقة: 80-100 قناعة عالية،\n50-79 متوسطة، أقل من 50 منخفضة.',
+            'FinBERT NLP News Sentiment': 'تحليل مشاعر الأخبار (FinBERT)\nكل عنوان يُحلَّل بنموذج ProsusAI/finbert المالي.\n\nأخضر = إيجابي، أحمر = سلبي، رمادي = محايد\n\nالدرجة الكلية: 0 = سلبي جدًا، 1 = إيجابي جدًا',
+            'Saudi Brokerage Options': 'وسطاء سعوديون مرخّصون\nوسطاء يمكنك فتح حساب لديهم\nوتنفيذ أمر على هذا السهم.\n\nالروابط تفتح الموقع الرسمي للوسيط.\nMSA غير مرتبطة بأي وسيط.',
+            '6-Month Range': 'نطاق 6 أشهر\nأعلى وأدنى سعر خلال آخر\n126 يوم تداول تقريبًا.',
+            'Price Deviation': 'انحراف السعر\nحركة اليوم مقابل الحركة اليومية\nالمعتادة (متوسط ~30 يومًا)،\nمع آخر حركة غير اعتيادية\n(أكبر من 1.5x المعتاد).',
+        };
+        let lang = getCookie('msa_lang') === 'ar' ? 'ar' : 'en';
+        const t = (s) => (lang === 'ar' && AR[s]) ? AR[s] : s;
+
+        function translateTree(root) {
+            const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+            let n;
+            while (n = tw.nextNode()) {
+                if (lang === 'ar') {
+                    const key = n.nodeValue.trim();
+                    if (key && AR[key] != null) {
+                        if (n.__en == null) n.__en = n.nodeValue;
+                        n.nodeValue = n.nodeValue.replace(key, AR[key]);
+                    }
+                } else if (n.__en != null) {
+                    n.nodeValue = n.__en;
+                    n.__en = null;
+                }
+            }
+        }
+        function applyTooltips() {
+            document.querySelectorAll('[data-tooltip]').forEach(el => {
+                if (!el.dataset.tooltipEn) el.dataset.tooltipEn = el.dataset.tooltip;
+                const first = el.dataset.tooltipEn.split('\n')[0].trim();
+                el.dataset.tooltip = (lang === 'ar' && AR_TIPS[first]) ? AR_TIPS[first] : el.dataset.tooltipEn;
+            });
+        }
+        function applyLang() {
+            document.documentElement.lang = lang;
+            translateTree(document.body);
+            applyTooltips();
+            document.getElementById('ticker-input').placeholder =
+                lang === 'ar' ? 'أدخل رمز السهم (مثال: AAPL)' : 'Enter ticker (e.g. AAPL, TSLA, PLTR)';
+            document.getElementById('lang-btn').textContent = lang === 'ar' ? 'EN' : 'عربي';
+            if (lastData) renderMiniStats(lastData);
+        }
+        document.getElementById('lang-btn').addEventListener('click', () => {
+            lang = lang === 'ar' ? 'en' : 'ar';
+            setCookie('msa_lang', lang);
+            applyLang();
+        });
+        new MutationObserver((muts) => {
+            if (lang !== 'ar') return;
+            for (const m of muts) m.addedNodes.forEach(nd => {
+                if (nd.nodeType === 1) translateTree(nd);
+                else if (nd.nodeType === 3) {
+                    const k = nd.nodeValue.trim();
+                    if (k && AR[k] != null) { nd.__en = nd.nodeValue; nd.nodeValue = nd.nodeValue.replace(k, AR[k]); }
+                }
+            });
+        }).observe(document.body, { childList: true, subtree: true });
+        applyLang();
     </script>
 </body>
 </html>
