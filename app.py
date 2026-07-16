@@ -192,6 +192,26 @@ class PricePoint(BaseModel):
     close: float
 
 
+class Range6M(BaseModel):
+    high: float | None = Field(None, description="Highest intraday price over ~6 months (126 trading days)")
+    high_date: str | None = None
+    low: float | None = Field(None, description="Lowest intraday price over ~6 months")
+    low_date: str | None = None
+
+
+def calculate_range_6m(daily_rows: list[dict[str, Any]]) -> Range6M:
+    """Peak / trough over the last ~126 trading days. daily_rows[0] = newest."""
+    window = daily_rows[:126]
+    if not window:
+        return Range6M()
+    hi = max(window, key=lambda r: r["high"])
+    lo = min(window, key=lambda r: r["low"])
+    return Range6M(
+        high=round(hi["high"], 2), high_date=hi["date"],
+        low=round(lo["low"], 2), low_date=lo["date"],
+    )
+
+
 class AnalysisResponse(BaseModel):
     ticker: str
     timestamp: str
@@ -211,6 +231,7 @@ class AnalysisResponse(BaseModel):
     news_sentiment: NewsSentiment | None = None
     gpt_analysis: GPTInsight | None = None
     price_history: list[PricePoint] = Field(default_factory=list, description="Last 30 days of closing prices (oldest first)")
+    range_6m: Range6M | None = Field(None, description="6-month high / low with dates")
 
 
 def _yf_fetch_history(ticker: str, period: str = "1y") -> list[dict[str, Any]]:
@@ -1361,6 +1382,7 @@ async def analyze(
         news_sentiment=news_sent,
         gpt_analysis=gpt_result,
         price_history=history,
+        range_6m=calculate_range_6m(daily_rows),
     )
 
     _analysis_cache[ticker] = result.model_dump()
