@@ -142,9 +142,18 @@
 
         .blink { animation: blinker 0.5s linear infinite alternate; }
         @keyframes blinker { from { opacity: 1; } to { opacity: 0.3; } }
+
+        .nav-link {
+            font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700;
+            color: #6b7280; padding: 6px 12px; border-radius: 8px;
+            white-space: nowrap; transition: color .2s, background .2s; background: transparent;
+            border: none; cursor: pointer;
+        }
+        .nav-link:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .nav-active { color: #fff; background: rgba(255,255,255,0.06); }
     </style>
 </head>
-<body class="h-screen flex overflow-hidden selection:bg-bull selection:text-black font-sans">
+<body class="h-screen flex flex-col overflow-hidden selection:bg-bull selection:text-black font-sans">
 
     <div id="loader-screen" class="hidden">
         <canvas id="loading-canvas"></canvas>
@@ -159,42 +168,24 @@
         </div>
     </div>
 
-    <aside class="w-20 lg:w-64 border-r border-border bg-panel flex flex-col justify-between hidden md:flex">
-        <div>
-            <div class="h-16 flex items-center justify-center lg:justify-start lg:px-6 border-b border-border">
-                <div class="w-3 h-3 bg-bull rounded-sm mr-3 shadow-[0_0_10px_#00ff88]"></div>
-                <span class="font-mono font-bold text-lg hidden lg:block tracking-tighter">MSA_CORE</span>
-            </div>
-            <nav class="mt-8 space-y-2 px-3">
-                <a href="#" class="flex items-center px-4 py-3 bg-white/5 text-white rounded-lg border border-white/5 transition">
-                    <svg class="w-5 h-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-5 3 3 5-7"/></svg>
-                    <span class="ml-3 text-sm font-bold hidden lg:block">Terminal</span>
-                </a>
-                <a href="compare.html" class="flex items-center px-4 py-3 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg transition">
-                    <svg class="w-5 h-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3L4 7l4 4"/><path d="M4 7h16"/><path d="M16 21l4-4-4-4"/><path d="M20 17H4"/></svg>
-                    <span class="ml-3 text-sm font-bold hidden lg:block">Compare</span>
-                </a>
-                <a href="favorites.html" class="flex items-center px-4 py-3 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg transition">
-                    <svg class="w-5 h-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                    <span class="ml-3 text-sm font-bold hidden lg:block">Favorites</span>
-                </a>
-                <button id="chat-open" class="w-full flex items-center px-4 py-3 text-gray-500 hover:text-bull hover:bg-white/5 rounded-lg transition">
-                    <svg class="w-5 h-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-                    <span class="ml-3 text-sm font-bold hidden lg:block">Ask MSA</span>
-                </button>
-                <a href="index.html" class="flex items-center px-4 py-3 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg transition">
-                    <svg class="w-5 h-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
-                    <span class="ml-3 text-sm font-bold hidden lg:block">Home</span>
-                </a>
-            </nav>
+    <nav class="h-14 flex-none border-b border-border bg-panel flex items-center gap-2 px-4 md:px-6 relative z-[400]">
+        <a href="index.html" class="flex items-center mr-2 flex-none">
+            <div class="w-3 h-3 bg-bull rounded-sm mr-2 shadow-[0_0_10px_#00ff88]"></div>
+            <span class="font-mono font-bold text-base tracking-tighter hidden sm:block">MSA_CORE</span>
+        </a>
+        <div class="flex items-center gap-1 flex-1 overflow-x-auto">
+            <a href="dashboard.html" class="nav-link nav-active">Terminal</a>
+            <a href="compare.html" class="nav-link">Compare</a>
+            <a href="favorites.html" class="nav-link">Favorites</a>
+            <button id="chat-open" class="nav-link">Ask MSA</button>
+            <a href="index.html" class="nav-link">Home</a>
         </div>
-        <div class="p-4">
-            <div class="glass-box p-3 rounded text-[10px] text-gray-500 font-mono text-center lg:text-left">
-                <div class="mb-1">STATUS: <span class="text-bull" id="api-status">READY</span></div>
-                <div>API: v3.0.0</div>
-            </div>
+        <div class="flex items-center gap-2 flex-none">
+            <button id="currency-btn" class="text-xs font-mono px-3 py-1.5 glass-box rounded-lg text-gray-400 hover:text-bull hover:border-bull/30 transition font-bold">USD</button>
+            <button id="lang-btn" class="text-xs font-mono px-3 py-1.5 glass-box rounded-lg text-gray-400 hover:text-bull hover:border-bull/30 transition font-bold">عربي</button>
+            <span class="hidden lg:flex items-center gap-1.5 text-[10px] font-mono text-gray-500">STATUS: <span class="text-bull" id="api-status">READY</span></span>
         </div>
-    </aside>
+    </nav>
 
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         
@@ -222,7 +213,6 @@
                         <div id="customize-list" class="space-y-1"></div>
                     </div>
                 </div>
-                <button id="lang-btn" class="text-xs font-mono px-3 py-1.5 glass-box rounded-lg text-gray-400 hover:text-bull hover:border-bull/30 transition font-bold">عربي</button>
                 <span class="w-2 h-2 rounded-full bg-bull animate-pulse" id="status-dot"></span>
                 <span class="text-xs font-mono text-gray-500" id="timestamp-display">WAITING FOR INPUT</span>
             </div>
@@ -1158,7 +1148,20 @@
             }
         }
 
-        function renderDashboard(data) {
+        // pick the verdict text in the active language (falls back to English)
+        function localizedGpt(gpt) {
+            const ar = (typeof lang !== 'undefined' && lang === 'ar');
+            return {
+                action: (ar && gpt.actionable_insight_ar) ? gpt.actionable_insight_ar : gpt.actionable_insight,
+                reason: (ar && gpt.reasoning_ar) ? gpt.reasoning_ar : gpt.reasoning,
+            };
+        }
+
+        let rawAnalyze = null;
+        function renderDashboard(rawData) {
+            rawAnalyze = rawData;
+            const data = convAnalyze(JSON.parse(JSON.stringify(rawData)));
+            const cs = curSym(data.ticker);
             document.title = `MSA | ${data.ticker}`;
 
             currentTicker = data.ticker;
@@ -1175,7 +1178,7 @@
             const pt0 = data.price_target || {};
             const dayUp = (pt0.daily_change_pct || 0) >= 0;
             if (pt0.current) {
-                livePrice.textContent = '$' + pt0.current.toFixed(2);
+                livePrice.textContent = cs + pt0.current.toFixed(2);
                 livePrice.className = `text-3xl font-bold font-mono ${dayUp ? 'text-bull' : 'text-bear'}`;
                 const chgStr = pt0.daily_change_pct != null ? ` ${dayUp ? '+' : ''}${pt0.daily_change_pct.toFixed(2)}%` : '';
                 priceArrow.textContent = (dayUp ? '▲' : '▼') + chgStr;
@@ -1294,10 +1297,10 @@
             // Price Target
             const pt = data.price_target || {};
             if (pt.target_mean) {
-                document.getElementById('pt-mean').textContent = '$' + pt.target_mean.toFixed(2);
-                document.getElementById('pt-current').textContent = pt.current ? ('$' + pt.current.toFixed(2)) : '--';
-                document.getElementById('pt-low').textContent = pt.target_low ? ('$' + pt.target_low.toFixed(2)) : '--';
-                document.getElementById('pt-high').textContent = pt.target_high ? ('$' + pt.target_high.toFixed(2)) : '--';
+                document.getElementById('pt-mean').textContent = cs + pt.target_mean.toFixed(2);
+                document.getElementById('pt-current').textContent = pt.current ? (cs + pt.current.toFixed(2)) : '--';
+                document.getElementById('pt-low').textContent = pt.target_low ? (cs + pt.target_low.toFixed(2)) : '--';
+                document.getElementById('pt-high').textContent = pt.target_high ? (cs + pt.target_high.toFixed(2)) : '--';
 
                 if (pt.upside_pct != null) {
                     const upEl = document.getElementById('pt-upside');
@@ -1315,8 +1318,8 @@
                     document.getElementById('pt-marker').style.left = Math.max(2, Math.min(98, pos)) + '%';
                 }
             } else {
-                document.getElementById('pt-mean').textContent = pt.current ? ('$' + pt.current.toFixed(2)) : 'N/A';
-                document.getElementById('pt-current').textContent = pt.current ? ('$' + pt.current.toFixed(2)) : '--';
+                document.getElementById('pt-mean').textContent = pt.current ? (cs + pt.current.toFixed(2)) : 'N/A';
+                document.getElementById('pt-current').textContent = pt.current ? (cs + pt.current.toFixed(2)) : '--';
                 document.getElementById('pt-low').textContent = 'N/A';
                 document.getElementById('pt-high').textContent = 'N/A';
                 document.getElementById('pt-upside-wrap').classList.add('hidden');
@@ -1326,8 +1329,9 @@
             const gptCard = document.getElementById('gpt-card');
             const aiBadge = document.getElementById('ai-badge');
             if (gpt) {
-                document.getElementById('gpt-action').textContent = gpt.actionable_insight;
-                document.getElementById('gpt-reason').textContent = gpt.reasoning;
+                const gl = localizedGpt(gpt);
+                document.getElementById('gpt-action').textContent = gl.action;
+                document.getElementById('gpt-reason').textContent = gl.reason;
                 document.getElementById('gpt-score').textContent = `CONF: ${gpt.confidence_score}%`;
                 document.getElementById('gpt-score').className = `text-xs font-mono px-2 py-1 rounded ${gpt.confidence_score >= 60 ? 'text-bull bg-bull/10' : 'text-warn bg-warn/10'}`;
 
@@ -1501,8 +1505,8 @@
                 probBar.className = 'h-full rounded-full transition-all duration-700 ' +
                     (prob > 90 ? 'bg-bear' : prob > 70 ? 'bg-warn' : prob > 50 ? 'bg-gray-400' : 'bg-gray-600');
 
-                document.getElementById('zscore-mean').textContent = zs.mean_20d != null ? '$' + zs.mean_20d.toFixed(2) : 'N/A';
-                document.getElementById('zscore-stddev').textContent = zs.stddev_20d != null ? '$' + zs.stddev_20d.toFixed(2) : 'N/A';
+                document.getElementById('zscore-mean').textContent = zs.mean_20d != null ? cs + zs.mean_20d.toFixed(2) : 'N/A';
+                document.getElementById('zscore-stddev').textContent = zs.stddev_20d != null ? cs + zs.stddev_20d.toFixed(2) : 'N/A';
             }
 
             // --- Inference Weights ---
@@ -1538,7 +1542,7 @@
             }
 
             initChart(data);
-            loadQuantLab(data);
+            loadQuantLab(rawData);
         }
 
         // ═══════════════ Quant Lab (v4 endpoints) ═══════════════
@@ -1551,7 +1555,38 @@
             profile: localStorage.getItem('msa_profile') || 'balanced',
         };
         const escHtml = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-        const curSym = (t) => t && t.endsWith('.SR') ? 'SAR ' : '$';
+        // ── display currency (native, or force SAR at 1 USD = 3.75 SAR) ──
+        let forceSAR = getCookie('msa_currency') === 'SAR';
+        function nativeCurOf(t) { return (t && t.endsWith('.SR')) ? 'SAR' : 'USD'; }
+        function dispCurOf(t) { return forceSAR ? 'SAR' : nativeCurOf(t); }
+        function fxFactor(t) { const n = nativeCurOf(t), dd = dispCurOf(t); return n === dd ? 1 : (dd === 'SAR' ? 3.75 : 1 / 3.75); }
+        const curSym = (t) => dispCurOf(t) === 'SAR' ? 'SAR ' : '$';
+        function _scale(o, keys, f) { if (!o) return; keys.forEach(k => { if (o[k] != null && isFinite(o[k])) o[k] = o[k] * f; }); }
+        function convAnalyze(d) {
+            const f = fxFactor(d.ticker); if (f === 1) return d;
+            _scale(d.price_target, ['current', 'target_mean', 'target_high', 'target_low'], f);
+            _scale(d.moving_averages, ['sma_50', 'sma_200'], f);
+            _scale(d.bollinger_bands, ['upper', 'middle', 'lower'], f);
+            _scale(d.zscore_analysis, ['mean_20d', 'stddev_20d'], f);
+            _scale(d.range_6m, ['high', 'low'], f);
+            _scale(d.dividend, ['per_share', 'annual_rate'], f);
+            if (Array.isArray(d.price_history)) d.price_history.forEach(p => { if (p.close != null) p.close *= f; });
+            if (d.denoised_trend && Array.isArray(d.denoised_trend.denoised_prices))
+                d.denoised_trend.denoised_prices = d.denoised_trend.denoised_prices.map(x => x * f);
+            return d;
+        }
+        function convMC(mc) {
+            const f = fxFactor(mc.ticker); if (f === 1) return mc;
+            _scale(mc, ['spot', 'target', 'expected_price', 'var_95_price', 'cvar_95_price'], f);
+            ['p05', 'p25', 'p50', 'p75', 'p95'].forEach(k => { if (Array.isArray(mc[k])) mc[k] = mc[k].map(x => x * f); });
+            if (Array.isArray(mc.sample_paths)) mc.sample_paths = mc.sample_paths.map(p => p.map(x => x * f));
+            return mc;
+        }
+        function convPos(p) {
+            const f = fxFactor(p.ticker); if (f === 1) return p;
+            _scale(p, ['price', 'stop_price', 'atr_14', 'position_value'], f);
+            return p;
+        }
         const fmtN = (v, d = 2) => (v == null || isNaN(v)) ? 'N/A' : Number(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
 
         function qlSpinner(id) {
@@ -1673,8 +1708,9 @@
             } catch (e) { qlError('mc-body', e.message, loadMonteCarlo); }
         }
         function renderMonteCarlo(mc) {
-            ql.mcTarget = mc.target;
-            document.getElementById('mc-target-input').value = mc.target;
+            ql.mcTarget = mc.target;               // native — used for the API round-trip
+            mc = convMC(mc);                       // convert to display currency
+            document.getElementById('mc-target-input').value = fmtN(mc.target);
             const cs = curSym(mc.ticker);
             const body = document.getElementById('mc-body');
             body.innerHTML = `
@@ -1780,7 +1816,7 @@
         }));
         document.getElementById('mc-target-input').addEventListener('change', (e) => {
             const v = parseFloat(e.target.value);
-            if (v > 0 && ql.ticker) { ql.mcTarget = v; loadMonteCarlo(); }
+            if (v > 0 && ql.ticker) { ql.mcTarget = v / fxFactor(ql.ticker); loadMonteCarlo(); }
         });
 
         // ═══ Position Sizing ═══
@@ -1795,6 +1831,7 @@
             } catch (e) { qlError('possize-body', e.message, loadPositionSize); }
         }
         function renderPositionSize(p) {
+            p = convPos(p);
             const cs = curSym(p.ticker);
             const zero = p.recommended_pct <= 0;
             document.getElementById('possize-body').innerHTML = `
@@ -2041,7 +2078,7 @@
                 const r = await fetch(`${API_BASE}/chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text, history: chatHistory }),
+                    body: JSON.stringify({ message: text, history: chatHistory, lang: (typeof lang !== 'undefined' ? lang : 'ar') }),
                 });
                 typing.remove();
                 if (!r.ok) {
@@ -2463,6 +2500,14 @@
                 lang === 'ar' ? 'أدخل رمز السهم (مثال: AAPL)' : 'Enter ticker (e.g. AAPL, TSLA, PLTR)';
             document.getElementById('lang-btn').textContent = lang === 'ar' ? 'EN' : 'عربي';
             if (lastData) renderMiniStats(lastData);
+            // refresh the AI verdict card text (model-generated, not a static label)
+            if (lastData && lastData.gpt_analysis) {
+                const g = localizedGpt(lastData.gpt_analysis);
+                const a = document.getElementById('gpt-action');
+                const r = document.getElementById('gpt-reason');
+                if (a) a.textContent = g.action;
+                if (r) r.textContent = g.reason;
+            }
         }
         document.getElementById('lang-btn').addEventListener('click', () => {
             lang = lang === 'ar' ? 'en' : 'ar';
@@ -2479,6 +2524,19 @@
                 }
             });
         }).observe(document.body, { childList: true, subtree: true });
+        // ═════════ Currency toggle (USD ⇄ SAR @ 3.75) ═════════
+        const currencyBtn = document.getElementById('currency-btn');
+        if (currencyBtn) {
+            const refreshCur = () => { currencyBtn.textContent = forceSAR ? 'SAR' : 'USD'; };
+            currencyBtn.addEventListener('click', () => {
+                forceSAR = !forceSAR;
+                setCookie('msa_currency', forceSAR ? 'SAR' : 'USD');
+                refreshCur();
+                if (rawAnalyze) renderDashboard(rawAnalyze);
+            });
+            refreshCur();
+        }
+
         // ═════════ Ask MSA drawer ═════════
         const chatDrawer = document.getElementById('chat-drawer');
         document.getElementById('chat-open').addEventListener('click', () => {
