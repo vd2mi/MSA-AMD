@@ -117,15 +117,15 @@
             backdrop-filter: blur(10px);
             box-shadow: 0 0 50px rgba(0,0,0,0.8);
         }
-        /* the header creates its own stacking context (backdrop-blur), so it must
-           sit above the scroll content or its dropdown paints under the widgets */
         main > header { position: relative; z-index: 300; }
+        /* lives directly under <body> (reparented on init) and uses position:fixed,
+           so no ancestor stacking context (backdrop-blur cards etc.) can cover it */
         #customize-menu {
-            position: absolute; right: 0; top: calc(100% + 8px);
+            position: fixed;
             width: 16rem; max-height: 24rem; overflow-y: auto;
             background: #0b0b0f; border: 1px solid #2a2a33;
             border-radius: 12px; padding: 12px;
-            z-index: 100000; box-shadow: 0 24px 70px rgba(0,0,0,0.9);
+            z-index: 2000000; box-shadow: 0 24px 70px rgba(0,0,0,0.9);
         }
         #customize-menu.hidden { display: none; }
 
@@ -2324,7 +2324,14 @@
             });
             const btn = document.getElementById('customize-btn');
             const menu = document.getElementById('customize-menu');
-            btn.onclick = (e) => { e.stopPropagation(); menu.classList.toggle('hidden'); };
+            document.body.appendChild(menu); // escape every stacking context
+            const placeMenu = () => {
+                const r = btn.getBoundingClientRect();
+                menu.style.top = (r.bottom + 8) + 'px';
+                menu.style.right = Math.max(8, Math.min(window.innerWidth - 264, window.innerWidth - r.right)) + 'px';
+            };
+            btn.onclick = (e) => { e.stopPropagation(); placeMenu(); menu.classList.toggle('hidden'); };
+            window.addEventListener('resize', () => { if (!menu.classList.contains('hidden')) placeMenu(); });
             document.addEventListener('click', (e) => {
                 if (!menu.contains(e.target) && !btn.contains(e.target)) menu.classList.add('hidden');
             });
