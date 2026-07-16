@@ -199,6 +199,86 @@ class Range6M(BaseModel):
     low_date: str | None = None
 
 
+class Dividend(BaseModel):
+    pays_dividend: bool = Field(False, description="True if the company currently pays a dividend")
+    per_share: float | None = Field(None, description="Most recent single dividend payment per share")
+    annual_rate: float | None = Field(None, description="Annual dividend per share")
+    yield_pct: float | None = Field(None, description="Dividend yield %, annual rate / current price")
+    frequency: str | None = Field(None, description="Monthly / Quarterly / Semi-Annual / Annual / Irregular")
+    ex_date: str | None = Field(None, description="Most recent dividend (ex-)date")
+
+
+def _yf_fetch_dividend(ticker: str) -> Dividend:
+    """Real per-share dividend, yield and payout frequency from Yahoo Finance."""
+    try:
+        stock = yf.Ticker(ticker.upper())
+        try:
+            info = stock.info or {}
+        except Exception:
+            info = {}
+
+        divs = None
+        try:
+            divs = stock.dividends  # pandas Series indexed by date
+        except Exception as exc:
+            logger.warning("Dividend history failed for %s: %s", ticker, exc)
+
+        per_share = ex_date = frequency = None
+        if divs is not None and not divs.empty:
+            per_share = round(float(divs.iloc[-1]), 4)
+            ex_date = divs.index[-1].strftime("%Y-%m-%d")
+            idx = divs.index
+            if len(idx) >= 2:
+                gaps = [(idx[i] - idx[i - 1]).days for i in range(max(1, len(idx) - 5), len(idx))]
+                if gaps:
+                    g = sorted(gaps)[len(gaps) // 2]
+                    frequency = (
+                        "Monthly" if g <= 45 else
+                        "Quarterly" if g <= 135 else
+                        "Semi-Annual" if g <= 275 else
+                        "Annual"
+                    )
+            elif per_share:
+                frequency = "Irregular"
+
+        annual_rate = info.get("dividendRate") or info.get("trailingAnnualDividendRate")
+        if annual_rate is None and per_share:
+            mult = {"Monthly": 12, "Quarterly": 4, "Semi-Annual": 2, "Annual": 1}.get(frequency)
+            if mult:
+                annual_rate = per_share * mult
+        annual_rate = round(float(annual_rate), 4) if annual_rate else None
+
+        price = (
+            info.get("currentPrice")
+            or info.get("regularMarketPrice")
+            or info.get("previousClose")
+        )
+        yield_pct = None
+        if annual_rate and price:
+            yield_pct = round(annual_rate / float(price) * 100, 2)
+        elif info.get("dividendYield"):
+            dy = float(info["dividendYield"])
+            # yfinance has flip-flopped between fraction (0.024) and percent (2.4)
+            yield_pct = round(dy if dy > 1.5 else dy * 100, 2)
+
+        pays = bool(per_share or annual_rate)
+        return Dividend(
+            pays_dividend=pays,
+            per_share=per_share,
+            annual_rate=annual_rate,
+            yield_pct=yield_pct,
+            frequency=frequency,
+            ex_date=ex_date,
+        )
+    except Exception as exc:
+        logger.warning("Dividend fetch failed for %s: %s", ticker, exc)
+        return Dividend()
+
+
+async def fetch_dividend(ticker: str) -> Dividend:
+    return await asyncio.to_thread(_yf_fetch_dividend, ticker.upper())
+
+
 def calculate_range_6m(daily_rows: list[dict[str, Any]]) -> Range6M:
     """Peak / trough over the last ~126 trading days. daily_rows[0] = newest."""
     window = daily_rows[:126]
@@ -232,6 +312,7 @@ class AnalysisResponse(BaseModel):
     gpt_analysis: GPTInsight | None = None
     price_history: list[PricePoint] = Field(default_factory=list, description="Last 30 days of closing prices (oldest first)")
     range_6m: Range6M | None = Field(None, description="6-month high / low with dates")
+    dividend: Dividend | None = Field(None, description="Per-share dividend, yield and frequency")
 
 
 def _yf_fetch_history(ticker: str, period: str = "1y") -> list[dict[str, Any]]:
@@ -1324,11 +1405,12 @@ async def analyze(
     logger.info("Cache MISS — starting analysis for %s", ticker)
     t0 = time.perf_counter()
 
-    (daily_rows, news), fg, analyst, pt = await asyncio.gather(
+    (daily_rows, news), fg, analyst, pt, dividend = await asyncio.gather(
         fetch_stock_data(ticker),
         fetch_fear_greed(),
         fetch_analyst_ratings(ticker),
         fetch_price_target(ticker),
+        fetch_dividend(ticker),
     )
 
     news_sent = await finbert_sentiment(news)
@@ -1383,6 +1465,7 @@ async def analyze(
         gpt_analysis=gpt_result,
         price_history=history,
         range_6m=calculate_range_6m(daily_rows),
+        dividend=dividend,
     )
 
     _analysis_cache[ticker] = result.model_dump()
