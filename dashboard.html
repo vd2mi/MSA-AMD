@@ -117,6 +117,9 @@
             backdrop-filter: blur(10px);
             box-shadow: 0 0 50px rgba(0,0,0,0.8);
         }
+        /* the header creates its own stacking context (backdrop-blur), so it must
+           sit above the scroll content or its dropdown paints under the widgets */
+        main > header { position: relative; z-index: 300; }
         #customize-menu {
             position: absolute; right: 0; top: calc(100% + 8px);
             width: 16rem; max-height: 24rem; overflow-y: auto;
