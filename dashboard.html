@@ -316,15 +316,15 @@
                                         <span class="text-[10px] text-gray-600" id="r6-low-date"></span>
                                     </div>
                                 </div>
-                                <div class="bg-black/20 p-4 rounded-lg border border-white/5" id="deviation-box" data-tooltip="Price Deviation&#10;Today's move vs the stock's typical&#10;daily move (average over ~30 days).&#10;Also shows the last unusual move&#10;(> 1.5x the typical swing).">
-                                    <div class="text-xs text-gray-500 uppercase tracking-widest mb-1">DEVIATION</div>
+                                <div class="bg-black/20 p-4 rounded-lg border border-white/5" id="dividend-box" data-tooltip="Dividend&#10;The cash a company pays per share,&#10;usually each quarter.&#10;&#10;Yield = annual dividend / current price.&#10;Frequency = how often it's paid.&#10;Ex-date = most recent payment date.">
+                                    <div class="text-xs text-gray-500 uppercase tracking-widest mb-1">DIVIDEND</div>
                                     <div class="flex items-center justify-between gap-2">
-                                        <span class="text-base font-mono font-bold" id="dev-today">--</span>
-                                        <span class="text-[9px] font-mono font-black px-1.5 py-0.5 rounded" id="dev-status">--</span>
+                                        <span class="text-base font-mono font-bold" id="div-amount">--</span>
+                                        <span class="text-[9px] font-mono font-black px-1.5 py-0.5 rounded" id="div-yield"></span>
                                     </div>
                                     <div class="flex items-center justify-between gap-2 mt-1 font-mono">
-                                        <span class="text-[10px] text-gray-600" id="dev-typical"></span>
-                                        <span class="text-[10px] text-gray-600" id="dev-last"></span>
+                                        <span class="text-[10px] text-gray-600" id="div-annual"></span>
+                                        <span class="text-[10px] text-gray-600" id="div-freq"></span>
                                     </div>
                                 </div>
                             </div>
@@ -2241,35 +2241,30 @@
                 document.getElementById('r6-low-date').textContent = fdate(loD);
             }
 
-            // deviation: today's move vs typical daily move (avg |return| over ~30d)
-            const rets = [];
-            for (let i = 1; i < hist.length; i++) {
-                const p = hist[i - 1].close;
-                if (p) rets.push((hist[i].close - p) / p * 100);
-            }
-            const typical = rets.length ? rets.reduce((a, b) => a + Math.abs(b), 0) / rets.length : null;
-            const today = (data.price_target || {}).daily_change_pct;
-            const devToday = document.getElementById('dev-today');
-            const devStatus = document.getElementById('dev-status');
-            const devLast = document.getElementById('dev-last');
-            if (today != null && typical != null && typical > 0) {
-                devToday.textContent = (today >= 0 ? '+' : '') + today.toFixed(2) + '%';
-                devToday.className = 'text-base font-mono font-bold ' + (today >= 0 ? 'text-bull' : 'text-bear');
-                document.getElementById('dev-typical').textContent = t('Typical') + ' ±' + typical.toFixed(2) + '%';
-                const ratio = Math.abs(today) / typical;
-                const st = ratio >= 2 ? 'EXTREME' : ratio >= 1.2 ? 'ELEVATED' : 'NORMAL';
-                devStatus.textContent = t(st);
-                devStatus.className = 'text-[9px] font-mono font-black px-1.5 py-0.5 rounded ' +
-                    (st === 'EXTREME' ? 'bg-bear/10 text-bear' : st === 'ELEVATED' ? 'bg-warn/10 text-warn' : 'bg-bull/10 text-bull');
-                let spike = null;
-                for (let i = rets.length - 1; i >= 0; i--) {
-                    if (Math.abs(rets[i]) > 1.5 * typical) { spike = { v: rets[i], d: hist[i + 1].date }; break; }
-                }
-                devLast.textContent = spike
-                    ? t('Last') + ': ' + (spike.v >= 0 ? '+' : '') + spike.v.toFixed(1) + '% (' + fdate(spike.d) + ')'
-                    : t('None (30d)');
+            // dividend: real per-share payout, yield and frequency (from /analyze)
+            const dv = data.dividend;
+            const amtEl = document.getElementById('div-amount');
+            const yldEl = document.getElementById('div-yield');
+            const annEl = document.getElementById('div-annual');
+            const freqEl = document.getElementById('div-freq');
+            if (dv == null) {
+                // field not present yet (backend not redeployed) — stay neutral, don't claim "no dividend"
+                amtEl.textContent = '--'; amtEl.className = 'text-base font-mono font-bold text-gray-500';
+                yldEl.textContent = ''; annEl.textContent = ''; freqEl.textContent = '';
+            } else if (dv.pays_dividend && (dv.per_share != null || dv.annual_rate != null)) {
+                const per = dv.per_share != null ? dv.per_share : dv.annual_rate / 4;
+                amtEl.textContent = cs + fmtN(per);
+                amtEl.className = 'text-base font-mono font-bold text-bull';
+                if (dv.yield_pct != null) {
+                    yldEl.textContent = fmtN(dv.yield_pct, 2) + '% ' + t('yield');
+                    yldEl.className = 'text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-bull/10 text-bull';
+                } else { yldEl.textContent = ''; }
+                annEl.textContent = dv.annual_rate != null ? (t('annual') + ' ' + cs + fmtN(dv.annual_rate)) : '';
+                freqEl.textContent = [dv.frequency ? t(dv.frequency) : '', dv.ex_date ? fdate(dv.ex_date) : '']
+                    .filter(Boolean).join(' · ');
             } else {
-                devToday.textContent = '--'; devStatus.textContent = '--'; devLast.textContent = '';
+                amtEl.textContent = t('None'); amtEl.className = 'text-base font-mono font-bold text-gray-500';
+                yldEl.textContent = ''; annEl.textContent = t('No dividend'); freqEl.textContent = '';
             }
         }
 
@@ -2355,9 +2350,9 @@
             'Display only — hiding widgets never changes the analysis or the final verdict.':
                 'عرض فقط — إخفاء الودجات لا يغيّر التحليل أو الحكم النهائي إطلاقًا.',
             // header card
-            'TECHNICAL SIGNAL': 'الإشارة الفنية', '6M RANGE': 'نطاق 6 أشهر', '1M RANGE': 'نطاق شهر', 'DEVIATION': 'الانحراف',
-            'Typical': 'المعتاد', 'Last': 'آخر مرة', 'None (30d)': 'لا شيء خلال 30 يومًا',
-            'NORMAL': 'طبيعي', 'ELEVATED': 'مرتفع', 'EXTREME': 'حاد',
+            'TECHNICAL SIGNAL': 'الإشارة الفنية', '6M RANGE': 'نطاق 6 أشهر', '1M RANGE': 'نطاق شهر',
+            'DIVIDEND': 'التوزيعات', 'yield': 'العائد', 'annual': 'سنويًا', 'No dividend': 'لا توزيعات', 'None': 'لا شيء',
+            'Quarterly': 'ربع سنوي', 'Semi-Annual': 'نصف سنوي', 'Annual': 'سنوي', 'Monthly': 'شهري', 'Irregular': 'غير منتظم',
             // widgets
             'Market Sentiment': 'معنويات السوق', 'INDEX: FEAR & GREED': 'مؤشر الخوف والطمع',
             'Technicals': 'المؤشرات الفنية', 'Analyst Rating': 'تقييم المحللين',
@@ -2432,7 +2427,7 @@
             'FinBERT NLP News Sentiment': 'تحليل مشاعر الأخبار (FinBERT)\nكل عنوان يُحلَّل بنموذج ProsusAI/finbert المالي.\n\nأخضر = إيجابي، أحمر = سلبي، رمادي = محايد\n\nالدرجة الكلية: 0 = سلبي جدًا، 1 = إيجابي جدًا',
             'Saudi Brokerage Options': 'وسطاء سعوديون مرخّصون\nوسطاء يمكنك فتح حساب لديهم\nوتنفيذ أمر على هذا السهم.\n\nالروابط تفتح الموقع الرسمي للوسيط.\nMSA غير مرتبطة بأي وسيط.',
             '6-Month Range': 'نطاق 6 أشهر\nأعلى وأدنى سعر خلال آخر\n126 يوم تداول تقريبًا.',
-            'Price Deviation': 'انحراف السعر\nحركة اليوم مقابل الحركة اليومية\nالمعتادة (متوسط ~30 يومًا)،\nمع آخر حركة غير اعتيادية\n(أكبر من 1.5x المعتاد).',
+            'Dividend': 'التوزيعات\nالنقد الذي توزّعه الشركة لكل سهم،\nغالبًا كل ربع سنة.\n\nالعائد = التوزيع السنوي / السعر الحالي.\nالتكرار = كم مرة يُدفع.\nتاريخ الاستحقاق = آخر توزيع.',
         };
         let lang = getCookie('msa_lang') === 'ar' ? 'ar' : 'en';
         const t = (s) => (lang === 'ar' && AR[s]) ? AR[s] : s;
