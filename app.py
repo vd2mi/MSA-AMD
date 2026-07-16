@@ -180,11 +180,13 @@ class InferenceWeights(BaseModel):
 
 
 class GPTInsight(BaseModel):
-    actionable_insight: str = Field(..., description="GPT-4 actionable recommendation")
+    actionable_insight: str = Field(..., description="Actionable recommendation (English)")
+    actionable_insight_ar: str | None = Field(None, description="Arabic translation of the actionable insight")
     confidence_score: int = Field(
-        ..., ge=0, le=100, description="Confidence score 0-100"
+        ..., ge=0, le=100, description="Confidence score 0-95 (never 100 — markets are probabilistic)"
     )
-    reasoning: str = Field(..., description="Brief reasoning behind the recommendation")
+    reasoning: str = Field(..., description="Brief reasoning behind the recommendation (English)")
+    reasoning_ar: str | None = Field(None, description="Arabic translation of the reasoning")
 
 
 class PricePoint(BaseModel):
@@ -1326,13 +1328,26 @@ async def gpt_analysis(
         "Distribution = smart money exiting.\n\n"
         "Your reasoning MUST reference: 'Denoised Price Velocity', "
         "'Statistical Significance', and specific Z-Score / slope values.\n\n"
+        "UNCERTAINTY (MANDATORY): Markets are probabilistic. NEVER express "
+        "certainty or a guarantee. NEVER output confidence_score 100 — the "
+        "maximum allowed is 95. Frame every conclusion as a probability, not a "
+        "promise, and include a brief reminder in the reasoning that this is a "
+        "probabilistic read, not a guaranteed outcome.\n\n"
+        "BILINGUAL OUTPUT (MANDATORY): also provide accurate Modern Standard "
+        "Arabic translations. Keep ticker symbols and technical acronyms "
+        "(RSI, MACD, Z-Score, VaR) in English inside the Arabic text.\n\n"
         "Respond with ONLY this JSON:\n"
         "{\n"
         '  "actionable_insight": "<Buy|Hold|Sell|Watch> — explanation citing '
         'denoised velocity and Z-Score thresholds",\n'
-        '  "confidence_score": <int 0-100>,\n'
+        '  "actionable_insight_ar": "<الترجمة العربية، تبدأ بالكلمة المقابلة: '
+        'شراء|احتفاظ|بيع|مراقبة — ثم الشرح>",\n'
+        '  "confidence_score": <int 0-95>,\n'
         '  "reasoning": "<2-3 sentences. MUST reference denoised slope, Z-Score, '
-        'statistical significance, and weight contributions>"\n'
+        'statistical significance, and weight contributions, and note it is '
+        'probabilistic not guaranteed>",\n'
+        '  "reasoning_ar": "<الترجمة العربية للتحليل بنفس المعنى، مع التذكير بأن '
+        'النتيجة احتمالية وليست مضمونة>"\n'
         "}"
     )
 
@@ -1366,8 +1381,11 @@ async def gpt_analysis(
 
     return GPTInsight(
         actionable_insight=parsed.get("actionable_insight", "N/A"),
-        confidence_score=max(0, min(100, int(parsed.get("confidence_score", 0)))),
+        actionable_insight_ar=parsed.get("actionable_insight_ar"),
+        # never surface a 100% conviction — markets are probabilistic
+        confidence_score=max(0, min(95, int(parsed.get("confidence_score", 0)))),
         reasoning=parsed.get("reasoning", ""),
+        reasoning_ar=parsed.get("reasoning_ar"),
     )
 
 
@@ -2375,7 +2393,13 @@ COPILOT_SYSTEM_PROMPT = (
     + "\n6. الأسهم السعودية تُدعم عبر لاحقة .SR (بيانات Yahoo Finance، قد تكون تغطية الأخبار والمحللين محدودة — قل ذلك عند حدوثه).\n"
     "7. نتيجة الفحص الشرعي تجريبية (قيد المعايرة) — قلها دائمًا عند عرضها.\n"
     "8. اختم دائمًا بسطر: «هذا تحليل كمّي وليس توصية استثمارية.»\n"
-    "9. كن موجزًا ومنظمًا: حكم واضح أولًا، ثم الأرقام الداعمة في نقاط قصيرة."
+    "9. كن موجزًا ومنظمًا: حكم واضح أولًا، ثم الأرقام الداعمة في نقاط قصيرة.\n"
+    "10. أنت مساعد مالي متخصص — أجب دائمًا عن أي سؤال مالي أو استثماري بأفضل ما تستطيع "
+    "مستعينًا بالأدوات. لا ترفض الأسئلة المالية. إن كان السؤال خارج نطاق المال تمامًا، "
+    "وجّه المستخدم بلطف إلى أنك مساعد مالي.\n"
+    "11. لا تُعطِ أبدًا تنبؤًا بنسبة 100% أو وعدًا مؤكدًا؛ لا سعر مضمون ولا ربح مضمون. "
+    "صِغ كل توقّع كاحتمال، ونبّه صراحةً عند إعطاء أي توقّع أن الأسواق غير مؤكدة "
+    "وأن النتيجة احتمالية وليست ضمانًا."
 )
 
 CHAT_TOOLS = [
@@ -2537,6 +2561,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=2000)
     history: list[ChatMessage] = Field(default_factory=list, description="Previous turns (last 8 kept)")
+    lang: str = Field("ar", description="Preferred reply language: 'ar' (default) or 'en'")
 
 
 class ChatResponse(BaseModel):
@@ -2553,7 +2578,20 @@ async def copilot_chat(req: ChatRequest):
 
     client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
-    messages: list[dict[str, Any]] = [{"role": "system", "content": COPILOT_SYSTEM_PROMPT}]
+    if req.lang == "en":
+        lang_directive = (
+            "\n\nLANGUAGE OVERRIDE: Reply in clear English (keep tickers and "
+            "technical acronyms as-is). Keep every anti-hallucination and "
+            "grounding rule above. Never give a 100% or guaranteed prediction — "
+            "frame everything as a probability and say so. End with the line: "
+            "'This is quantitative analysis, not investment advice.'"
+        )
+    else:
+        lang_directive = "\n\nتذكير: أجب بالعربية الفصحى مع الالتزام بكل القواعد أعلاه."
+
+    messages: list[dict[str, Any]] = [
+        {"role": "system", "content": COPILOT_SYSTEM_PROMPT + lang_directive}
+    ]
     for m in req.history[-8:]:
         messages.append({"role": m.role, "content": m.content})
     messages.append({"role": "user", "content": req.message})
