@@ -1148,12 +1148,51 @@
             }
         }
 
-        // pick the verdict text in the active language (falls back to English)
-        function localizedGpt(gpt) {
+        // Arabic verdict built from the computed signals — used when the backend
+        // hasn't supplied a translation (e.g. Space not yet redeployed)
+        function _sigAr(s) {
+            return ({ Buy: 'شراء', Sell: 'بيع', Hold: 'احتفاظ', Watch: 'مراقبة' })[s] || 'محايد';
+        }
+        function _dirAr(d) {
+            return ({ Rising: 'صاعد', Falling: 'هابط', Flat: 'مستقر' })[d] || d || '';
+        }
+        function arActionWord(gpt, data) {
+            const a = (gpt.actionable_insight || '').toLowerCase();
+            if (a.startsWith('buy')) return 'شراء';
+            if (a.startsWith('sell')) return 'بيع';
+            if (a.startsWith('hold')) return 'احتفاظ';
+            if (a.startsWith('watch')) return 'مراقبة';
+            return _sigAr((data.inference_weights || {}).composite_signal || '');
+        }
+        function buildArAction(gpt, data) {
+            const iw = data.inference_weights || {};
+            const w = arActionWord(gpt, data);
+            const sc = iw.composite_score != null ? ` — الدرجة الكمّية المركّبة ${iw.composite_score.toFixed(1)}/100` : '';
+            return w + sc;
+        }
+        function buildArReason(gpt, data) {
+            const iw = data.inference_weights || {}, zs = data.zscore_analysis || {},
+                  sg = data.denoised_trend || {}, tc = data.technicals || {}, ar = data.analyst_ratings || {};
+            const parts = [];
+            if (iw.composite_score != null)
+                parts.push(`الدرجة الكمّية المركّبة ${iw.composite_score.toFixed(1)} من 100 (${_sigAr(iw.composite_signal)}).`);
+            if (zs.zscore != null)
+                parts.push(`درجة Z الحالية ${zs.zscore.toFixed(2)} — ${Math.abs(zs.zscore) > 1.5 ? 'السعر ممتد إحصائيًا' : 'ضمن النطاق الطبيعي'}.`);
+            if (sg.slope_direction)
+                parts.push(`الاتجاه المنقّى (SG) ${_dirAr(sg.slope_direction)}${tc.rsi_14 != null ? ` وRSI عند ${tc.rsi_14.toFixed(0)}` : ''}.`);
+            if (ar.recommendation)
+                parts.push(`إجماع المحللين: ${_sigAr(ar.recommendation.replace('Strong ', ''))}.`);
+            parts.push('هذا تحليل احتمالي مبني على الأرقام المحسوبة، وليس ضمانًا.');
+            return parts.join(' ');
+        }
+
+        // pick the verdict text in the active language
+        function localizedGpt(gpt, data) {
             const ar = (typeof lang !== 'undefined' && lang === 'ar');
+            if (!ar) return { action: gpt.actionable_insight, reason: gpt.reasoning };
             return {
-                action: (ar && gpt.actionable_insight_ar) ? gpt.actionable_insight_ar : gpt.actionable_insight,
-                reason: (ar && gpt.reasoning_ar) ? gpt.reasoning_ar : gpt.reasoning,
+                action: gpt.actionable_insight_ar || buildArAction(gpt, data),
+                reason: gpt.reasoning_ar || buildArReason(gpt, data),
             };
         }
 
@@ -1329,7 +1368,7 @@
             const gptCard = document.getElementById('gpt-card');
             const aiBadge = document.getElementById('ai-badge');
             if (gpt) {
-                const gl = localizedGpt(gpt);
+                const gl = localizedGpt(gpt, data);
                 document.getElementById('gpt-action').textContent = gl.action;
                 document.getElementById('gpt-reason').textContent = gl.reason;
                 document.getElementById('gpt-score').textContent = `CONF: ${gpt.confidence_score}%`;
@@ -2502,7 +2541,7 @@
             if (lastData) renderMiniStats(lastData);
             // refresh the AI verdict card text (model-generated, not a static label)
             if (lastData && lastData.gpt_analysis) {
-                const g = localizedGpt(lastData.gpt_analysis);
+                const g = localizedGpt(lastData.gpt_analysis, lastData);
                 const a = document.getElementById('gpt-action');
                 const r = document.getElementById('gpt-reason');
                 if (a) a.textContent = g.action;
